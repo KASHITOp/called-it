@@ -48,7 +48,8 @@ Requirements for the first live edition (Q3 FY27). Each maps to one roadmap phas
 ### Features, Baseline & Backtest
 
 - [ ] **FEAT-01**: Feature builder produces 5–8 scale-free features per company-quarter from an explicit `as_of` (Trends YoY change, GST national YoY, GST key-state YoY, seasonality dummies, break flags), with lineage of the source rows used
-- [ ] **FEAT-02**: [CRITICAL] The Eternal break treatment is chosen, written down and frozen before the first baseline lock; the GST 2.0 treatment likewise before the first model lock
+- [ ] **FEAT-02**: [CRITICAL] The Eternal break treatment is chosen, written down and frozen (its SHA-256 recorded in the ledger) before the first baseline lock
+- [ ] **FEAT-03**: The GST 2.0 treatment is chosen only after inspecting the actual GSTN files (component definitions, cess exclusion, restated Sep/Oct 2025 bases), then written down and frozen (its SHA-256 appended to the ledger) before the first model lock (~15 Dec 2026). It is deliberately not frozen with the Phase 1 rules, and no model lock is accepted until it is
 - [ ] **BASE-01**: [CRITICAL] Baseline predicts revenue = same quarter last year × (1 + trailing YoY growth), using only data available before the cutoff, with the same break treatment as the model
 - [ ] **BACK-01**: Walk-forward backtest prints a results table of MAPE and directional accuracy (direction of surprise vs baseline), per company and overall, for baseline and model
 - [ ] **BACK-02**: Backtest results are stored and labelled BACKTEST (pseudo-real-time), never mixed into live ledger records
@@ -165,6 +166,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-09 | Phase 3 | Pending |
 | FEAT-01 | Phase 3 | Pending |
 | FEAT-02 | Phase 1 | Pending |
+| FEAT-03 | Phase 3 | Pending |
 | BASE-01 | Phase 1 | Pending |
 | BACK-01 | Phase 3 | Pending |
 | BACK-02 | Phase 3 | Pending |
@@ -206,11 +208,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPS-05 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 65 total (24 [CRITICAL], all in Phase 1)
-- Mapped to phases: 65
+- v1 requirements: 66 total (24 [CRITICAL], all in Phase 1)
+- Mapped to phases: 66
 - Unmapped: 0 ✓
-- Per phase: Phase 1: 24 · Phase 2: 9 · Phase 3: 7 · Phase 4: 7 · Phase 5: 12 · Phase 6: 6
+- Per phase: Phase 1: 24 · Phase 2: 9 · Phase 3: 8 · Phase 4: 7 · Phase 5: 12 · Phase 6: 6
 
 ---
 *Requirements defined: 2026-11-17*
-*Last updated: 2026-11-17 after roadmap creation (traceability mapped to 6 phases)*
+*Last updated: 2026-11-17 after splitting the GST 2.0 treatment out of FEAT-02 into FEAT-03 (decided in Phase 3, frozen before the first model lock)*

@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-11-17)
 Phase: 1 of 6 (First Baseline-Only Lock)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-11-17 — Roadmap created (6 phases, 65/65 v1 requirements mapped, all 24 [CRITICAL] in Phase 1)
+Last activity: 2026-11-17 — Roadmap approved (6 phases, 66/66 v1 requirements mapped, all 24 [CRITICAL] in Phase 1); GST 2.0 treatment moved to Phase 3 as FEAT-03
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,10 +55,10 @@ Recent decisions affecting current work:
 
 - Roadmap: Phase 1 holds every [CRITICAL] requirement (24) and nothing else. It ends with the first baseline-only lock, git- and OTS-witnessed, by 1 Dec 2026.
 - Roadmap: the ledger comes before the main model. Forward-collector cron and weekly-lock automation sit in Phase 2, because missed days and weeks can never be recovered or backfilled.
-- Roadmap: FEAT-02 freezes both the Eternal and the GST 2.0 break treatments in Phase 1. This is stricter than the requirement, which needs GST 2.0 only before the first model lock.
+- Roadmap: FEAT-02 freezes only the Eternal break treatment in Phase 1. The GST 2.0 treatment (FEAT-03) is decided in Phase 3 after seeing the GSTN files, and frozen in the ledger before the first model lock (~15 Dec). User decision, 2026-11-17.
 - Roadmap: the OPS-02 final-lock dry run and OPS-03 CI land in Phase 2, well ahead of the mid-December deadline. OPS-01 consolidates all cron and the export commit in Phase 5.
 - Roadmap: if ridge is not frozen by ~15 Dec, baseline-only official calls are the accepted fallback.
-- Requirements: the app-rank signal is Apple RSS rank plus Play app details, with no Play chart scraping. PROJECT.md still says "Play Store rank" and is out of date.
+- Requirements: the app-rank signal is Apple RSS rank plus Play app details, with no Play chart scraping.
 
 ### Pending Todos
 
@@ -73,6 +73,7 @@ None yet.
 - [Phase 2] Research flag: per-company careers-site endpoints and robots.txt.
 - [Phase 2] Holiday risks: GitHub cron delays and a Supabase free-tier pause over the New Year.
 - [Phase 2] GitHub disables cron after 60 days of repo inactivity.
+- [Phase 3] The GST 2.0 treatment (FEAT-03) must be frozen before the first model lock (~15 Dec), so Phase 3 cannot slip past that.
 - [Phase 3] Research flag: the GSTN Excel layout and restatements. Also check whether trendspyg works from Actions IPs, and apply for official Trends API alpha access now.
 
 ## Deferred Items
@@ -86,5 +87,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-11-17
-Stopped at: Roadmap and state initialized; awaiting user approval of the roadmap
+Stopped at: Roadmap approved; next is /gsd-discuss-phase 1
 Resume file: None
