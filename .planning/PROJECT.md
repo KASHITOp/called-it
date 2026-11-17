@@ -21,7 +21,7 @@ CALLED IT. predicts the quarterly consolidated revenue of Indian listed consumer
 - [ ] Availability-dated store: every data point carries `period_date` and `available_at`
 - [ ] Leakage guard: features for quarter Q use only rows with `available_at < reveal_date(Q)`, plus unit tests that fail on any leak (the most important test in the repo)
 - [ ] Historical collectors: quarterly revenue, Google Trends (weekly), GST collections (national + state-wise), each with a seed-CSV fallback
-- [ ] Forward collectors (Play Store rank, job postings) logging daily from now on, flagged "forward-collected"
+- [ ] Forward collectors (Apple App Store India rank via official RSS, Play Store app-details snapshot, careers-page job counts) logging daily from now on, flagged "forward-collected"
 - [ ] Baseline model: same-quarter-last-year × (1 + trailing YoY growth)
 - [ ] Walk-forward (expanding window) backtest with a printed results table (MAPE, directional accuracy, per company and overall)
 - [ ] Main model: YoY-growth regression (ridge first, then gradient boosting) on 5–8 features, with train-vs-test error printed and an 80% interval
@@ -54,7 +54,7 @@ CALLED IT. predicts the quarterly consolidated revenue of Indian listed consumer
 - **Revenue basis:** consolidated revenue from operations (Titan incl. CaratLane, Eternal incl. Blinkit). Where an early disclosure is standalone (e.g. DMART's update), it counts as the reveal for timing, but grading uses consolidated revenue from the results filing.
 - **Eternal structural break:** Blinkit's switch to an inventory-led model in 2025 inflated consolidated revenue for accounting reasons rather than demand. The company config carries a structural-break marker; quarters whose YoY comparison straddles the break are excluded from fitting and flagged. This is reported openly as a limitation in the backtest and UI.
 - **Data available historically (backtest-eligible):** quarterly revenue (results filings), Google Trends (weekly, multi-year), monthly GST collections (national + state-wise, published early the following month). GST `available_at` = publication date, not month-end.
-- **Forward-collected only:** Play Store ranks, job-posting counts. Logged daily from now, used as features only after enough history exists, and labelled "forward-collected" in the UI.
+- **Forward-collected only:** app-store rank (Apple App Store India RSS — Play has no ToS-clean public chart rank), Play app-details snapshots, careers-page job counts. Logged daily from now, used as features only after enough history exists, and labelled "forward-collected" in the UI.
 - **GST features:** national total YoY plus the YoY of the state(s) that make up most of each company's sales (set per company in config, e.g. Maharashtra for DMART).
 - **Sample size:** about 12–16 quarters per company, which is why features are capped at roughly 5–8 and train vs test error is always printed.
 - **Ledger cadence:** a locked nowcast every week during the quarter as data arrives. Every one is graded, and the last one before the reveal is the headline "official call". This shows how the estimate converged.

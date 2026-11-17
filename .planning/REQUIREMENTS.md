@@ -139,12 +139,78 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| FOUND-01 | Phase 1 | Pending |
+| FOUND-02 | Phase 6 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 1 | Pending |
+| FOUND-05 | Phase 1 | Pending |
+| PIT-01 | Phase 1 | Pending |
+| PIT-02 | Phase 1 | Pending |
+| PIT-03 | Phase 1 | Pending |
+| PIT-04 | Phase 1 | Pending |
+| PIT-05 | Phase 1 | Pending |
+| LEAK-01 | Phase 1 | Pending |
+| LEAK-02 | Phase 1 | Pending |
+| LEAK-03 | Phase 1 | Pending |
+| LEAK-04 | Phase 1 | Pending |
+| LEAK-05 | Phase 3 | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 3 | Pending |
+| DATA-03 | Phase 3 | Pending |
+| DATA-04 | Phase 2 | Pending |
+| DATA-05 | Phase 2 | Pending |
+| DATA-06 | Phase 2 | Pending |
+| DATA-07 | Phase 2 | Pending |
+| DATA-08 | Phase 2 | Pending |
+| DATA-09 | Phase 3 | Pending |
+| FEAT-01 | Phase 3 | Pending |
+| FEAT-02 | Phase 1 | Pending |
+| BASE-01 | Phase 1 | Pending |
+| BACK-01 | Phase 3 | Pending |
+| BACK-02 | Phase 3 | Pending |
+| MODL-01 | Phase 4 | Pending |
+| MODL-02 | Phase 4 | Pending |
+| MODL-03 | Phase 4 | Pending |
+| MODL-04 | Phase 4 | Pending |
+| MODL-05 | Phase 4 | Pending |
+| MODL-06 | Phase 4 | Pending |
+| LEDG-01 | Phase 1 | Pending |
+| LEDG-02 | Phase 1 | Pending |
+| LEDG-03 | Phase 1 | Pending |
+| LEDG-04 | Phase 1 | Pending |
+| LEDG-05 | Phase 1 | Pending |
+| LEDG-06 | Phase 2 | Pending |
+| LEDG-07 | Phase 1 | Pending |
+| LEDG-08 | Phase 4 | Pending |
+| LEDG-09 | Phase 1 | Pending |
+| LEDG-10 | Phase 1 | Pending |
+| LEDG-11 | Phase 2 | Pending |
+| API-01 | Phase 5 | Pending |
+| API-02 | Phase 5 | Pending |
+| WEB-01 | Phase 5 | Pending |
+| WEB-02 | Phase 5 | Pending |
+| WEB-03 | Phase 6 | Pending |
+| WEB-04 | Phase 5 | Pending |
+| WEB-05 | Phase 5 | Pending |
+| WEB-06 | Phase 5 | Pending |
+| WEB-07 | Phase 5 | Pending |
+| WEB-08 | Phase 6 | Pending |
+| WEB-09 | Phase 5 | Pending |
+| WEB-10 | Phase 5 | Pending |
+| WEB-11 | Phase 6 | Pending |
+| WEB-12 | Phase 6 | Pending |
+| OPS-01 | Phase 5 | Pending |
+| OPS-02 | Phase 2 | Pending |
+| OPS-03 | Phase 2 | Pending |
+| OPS-04 | Phase 5 | Pending |
+| OPS-05 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 65 total
-- Mapped to phases: 0
-- Unmapped: 65 ⚠️
+- v1 requirements: 65 total (24 [CRITICAL], all in Phase 1)
+- Mapped to phases: 65
+- Unmapped: 0 ✓
+- Per phase: Phase 1: 24 · Phase 2: 9 · Phase 3: 7 · Phase 4: 7 · Phase 5: 12 · Phase 6: 6
 
 ---
 *Requirements defined: 2026-11-17*
-*Last updated: 2026-11-17 after user review (WEB-11/12 added, critical path tagged)*
+*Last updated: 2026-11-17 after roadmap creation (traceability mapped to 6 phases)*
