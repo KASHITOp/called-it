@@ -1,0 +1,1 @@
+{"content":"Supabase Free plan projects pause after ~1 week of insufficient DB activity; paid plans never pause; paused projects restorable. Daily cron writes keep it alive.","source":"web","provider":"websearch","confidence":"MEDIUM","fetched_at":"2026-11-17T01:02:32.133Z","ttl":86400000,"kind":"web"}

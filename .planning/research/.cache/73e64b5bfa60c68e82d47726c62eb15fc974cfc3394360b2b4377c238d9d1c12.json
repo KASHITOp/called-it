@@ -1,0 +1,1 @@
+{"content":"Append-only Postgres: row-level BEFORE UPDATE OR DELETE trigger raising exception plus statement-level BEFORE TRUNCATE trigger (TRUNCATE bypasses DELETE triggers). Owners/superusers can still drop triggers.","source":"web","provider":"websearch","confidence":"MEDIUM","fetched_at":"2026-11-17T01:03:11.686Z","ttl":86400000,"kind":"web"}
