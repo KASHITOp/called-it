@@ -1,0 +1,23 @@
+[project]
+name = "called-it-nowcaster"
+version = "0.1.0"
+description = "CALLED IT. nowcaster: baseline model, ledger, lock and the nowcast CLI"
+requires-python = ">=3.12"
+dependencies = [
+    "calledit-data",
+    "typer==0.29.1",
+    "pydantic==2.14.3",
+]
+
+[project.scripts]
+nowcast = "nowcaster.cli:app"
+
+[tool.uv.sources]
+calledit-data = { workspace = true }
+
+[tool.uv.build-backend]
+module-name = "nowcaster"
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14"]
+build-backend = "uv_build"

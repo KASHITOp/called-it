@@ -1,0 +1,17 @@
+[project]
+name = "calledit-data"
+version = "0.1.0"
+description = "CALLED IT. data layer: point-in-time store, migrations, calendar, seed loaders"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy==2.1.9",
+    "alembic==1.20.1",
+    "psycopg[binary]==3.3.9",
+    "pydantic==2.14.3",
+    "pydantic-settings==2.16.3",
+    "tzdata==2026.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14"]
+build-backend = "uv_build"
