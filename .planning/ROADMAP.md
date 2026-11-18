@@ -62,7 +62,22 @@ Decimal phases appear between their surrounding integers in numeric order.
      - **Rules frozen first.** The grading rules and the frozen Eternal break treatment are committed, and their SHA-256 is recorded in the ledger before any prediction. The GST 2.0 treatment is deliberately left open here; it is decided in Phase 3 (FEAT-03).
      - **The lock.** On or before 1 Dec 2026, `uv run nowcast predict --quarter Q3FY27` locks one baseline-only prediction per company: same quarter last year x (1 + trailing YoY), with the Eternal treatment applied and a `feature_snapshot` recorded. It appends the lock to `ledger.jsonl`, pushes that commit to GitHub, and saves an OpenTimestamps proof. Within a day the proof upgrades to a Bitcoin attestation that `ots verify` accepts.
      - **Late and backfilled locks refused.** `uv run nowcast predict --quarter Q2FY27` (already revealed) is rejected or recorded VOID, and no command can backfill a lock at a past time.
-**Plans**: TBD
+**Plans**: 13 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Workspace manifests, .gitattributes, branch main, then the uv install + package-legitimacy gate
+- [ ] 01-02-PLAN.md — Walking skeleton: hash-chained rules record on SQLite exported to ledger.jsonl; Python/JS golden vectors; ledger integrity
+- [ ] 01-03-PLAN.md — Fiscal calendar, IST/UTC bounds, config/universe.toml; `nowcast universe` and `nowcast calendar`
+- [ ] 01-04-PLAN.md — Insert-only point-in-time store, PointInTimeReader, whole-file seed loader, reveal calendar from events
+- [ ] 01-05-PLAN.md — Baseline-v1 (Decimal TTM, break-aware Eternal method, breaks_in_window, refusals); `nowcast baseline`
+- [ ] 01-06-PLAN.md — Leakage suite: --reader switch, leaky readers, invariance property, meta-test, splitter, clock/import guards
+- [ ] 01-07-PLAN.md — `nowcast predict`: prediction/gap records, lock guard, exit codes, rules freshness
+- [ ] 01-08-PLAN.md — Postgres parity: .env fix gate, Supabase scratch-schema trigger tests, db check, ci-postgres.yml
+- [ ] 01-09-PLAN.md — Seed history drafted from company IR documents (verified = N) + Eternal break-range citation
+- [ ] 01-10-PLAN.md — PREREGISTRATION.md, then the freeze checkpoint (user verifies seed, confirms Eternal range/ISINs, approves rules)
+- [ ] 01-11-PLAN.md — Secret + publish gate, first push, ruleset, green CI, lock.yml, full dress rehearsal, discard
+- [ ] 01-12-PLAN.md — Go-live gate and live seq 0 rules record, committed to main and OTS-stamped
+- [ ] 01-13-PLAN.md — Go-live gate and first live Q3 FY27 baseline-only lock; OTS upgrade and D-26 verification; phase evidence sweep
 
 ### Phase 2: The Record Runs Itself
 **Goal**: Forward-only signals build up every day from the first lock onward (a lost day can never be recovered). Weekly locks, ledger verification and the redundant final pre-reveal lock run unattended on GitHub Actions, so the Q3 FY27 official calls are made even if the developer is away over the New Year.
@@ -142,7 +157,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Baseline-Only Lock | 0/TBD | Not started | - |
+| 1. First Baseline-Only Lock | 0/13 | Planned | - |
 | 2. The Record Runs Itself | 0/TBD | Not started | - |
 | 3. Real Signals & Honest Backtest | 0/TBD | Not started | - |
 | 4. Main Model Joins the Ledger | 0/TBD | Not started | - |
