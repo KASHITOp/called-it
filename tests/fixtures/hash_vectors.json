@@ -1,0 +1,520 @@
+{
+  "accept": [
+    {
+      "name": "research-probe",
+      "value": {
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "scheme": "calledit-ledger-v1",
+        "seq": "0",
+        "test": "researcher-probe-2026-11-18"
+      },
+      "canonical": "{\"prev_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"scheme\":\"calledit-ledger-v1\",\"seq\":\"0\",\"test\":\"researcher-probe-2026-11-18\"}",
+      "sha256": "3274e09024a2561fb06caa533f7727a9e67ae6c7c5e3bfe8fe849233d2c5d99e"
+    },
+    {
+      "name": "genesis-rules-record",
+      "value": {
+        "scheme": "calledit-ledger-v1",
+        "seq": "0",
+        "record_kind": "rules",
+        "rules_id": "prereg-v1",
+        "document_path": "PREREGISTRATION.md",
+        "document_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "document_git_commit": "0123456789abcdef0123456789abcdef01234567",
+        "universe_path": "config/universe.toml",
+        "universe_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "recorded_at": "2026-11-28T06:00:00Z",
+        "run_id": "local",
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "canonical": "{\"document_git_commit\":\"0123456789abcdef0123456789abcdef01234567\",\"document_path\":\"PREREGISTRATION.md\",\"document_sha256\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"prev_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"record_kind\":\"rules\",\"recorded_at\":\"2026-11-28T06:00:00Z\",\"rules_id\":\"prereg-v1\",\"run_id\":\"local\",\"scheme\":\"calledit-ledger-v1\",\"seq\":\"0\",\"universe_path\":\"config/universe.toml\",\"universe_sha256\":\"2222222222222222222222222222222222222222222222222222222222222222\"}",
+      "sha256": "7b7266a45bde8a672e8c1e3cbcd6fd92461f879d48f5c95b443fdc2aed0d81cb"
+    },
+    {
+      "name": "prediction-interval-none",
+      "value": {
+        "scheme": "calledit-ledger-v1",
+        "seq": "1",
+        "record_kind": "prediction",
+        "ticker": "DMART",
+        "fiscal_quarter": "Q3FY27",
+        "target": "rev_ops_consolidated_inr_cr",
+        "point_inr_cr": "18123.45",
+        "lo80_inr_cr": "none",
+        "hi80_inr_cr": "none",
+        "interval_label": "none (baseline-only, no out-of-sample residuals yet)",
+        "baseline_inr_cr": "18123.45",
+        "baseline_method": "ttm_yoy",
+        "growth": "0.162345",
+        "model_version": "baseline-sqly@1.0.0",
+        "labels": [],
+        "breaks_in_window": "gst2.0",
+        "locked_at": "2026-11-28T06:00:00Z",
+        "prev_hash": "abababababababababababababababababababababababababababababababab"
+      },
+      "canonical": "{\"baseline_inr_cr\":\"18123.45\",\"baseline_method\":\"ttm_yoy\",\"breaks_in_window\":\"gst2.0\",\"fiscal_quarter\":\"Q3FY27\",\"growth\":\"0.162345\",\"hi80_inr_cr\":\"none\",\"interval_label\":\"none (baseline-only, no out-of-sample residuals yet)\",\"labels\":[],\"lo80_inr_cr\":\"none\",\"locked_at\":\"2026-11-28T06:00:00Z\",\"model_version\":\"baseline-sqly@1.0.0\",\"point_inr_cr\":\"18123.45\",\"prev_hash\":\"abababababababababababababababababababababababababababababababab\",\"record_kind\":\"prediction\",\"scheme\":\"calledit-ledger-v1\",\"seq\":\"1\",\"target\":\"rev_ops_consolidated_inr_cr\",\"ticker\":\"DMART\"}",
+      "sha256": "f374f34037785263e42c6848706c5fba34e414b99f97a855074d71215d845665"
+    },
+    {
+      "name": "zero-money",
+      "value": {
+        "amount_inr_cr": "0.00"
+      },
+      "canonical": "{\"amount_inr_cr\":\"0.00\"}",
+      "sha256": "ed3604263e6aa2ee7519ab784c26ac72ebf88affc2f175919a93de4d8cc667d0"
+    },
+    {
+      "name": "negative-growth",
+      "value": {
+        "growth": "-0.031250"
+      },
+      "canonical": "{\"growth\":\"-0.031250\"}",
+      "sha256": "092ca810573ae0109babd165696b39b162ff403a40a6ca7534ca002ca5049e03"
+    },
+    {
+      "name": "large-money",
+      "value": {
+        "point_inr_cr": "1234567890.12"
+      },
+      "canonical": "{\"point_inr_cr\":\"1234567890.12\"}",
+      "sha256": "dd32b4547c2f843d4705a4667e27e06e81e6f3f70e72cd97332984057492b463"
+    },
+    {
+      "name": "nested-snapshot-lists-of-dicts",
+      "value": {
+        "quarters": [
+          {
+            "fiscal_quarter": "Q3FY26",
+            "rev_inr_cr": "16932.03",
+            "basis": "rule:date_eod_ist"
+          },
+          {
+            "fiscal_quarter": "Q2FY27",
+            "rev_inr_cr": "17001.00",
+            "basis": "exchange_timestamp"
+          }
+        ],
+        "window": {
+          "b": [
+            "Q3FY25",
+            "Q2FY26"
+          ],
+          "a": [
+            "Q3FY26",
+            "Q2FY27"
+          ]
+        }
+      },
+      "canonical": "{\"quarters\":[{\"basis\":\"rule:date_eod_ist\",\"fiscal_quarter\":\"Q3FY26\",\"rev_inr_cr\":\"16932.03\"},{\"basis\":\"exchange_timestamp\",\"fiscal_quarter\":\"Q2FY27\",\"rev_inr_cr\":\"17001.00\"}],\"window\":{\"a\":[\"Q3FY26\",\"Q2FY27\"],\"b\":[\"Q3FY25\",\"Q2FY26\"]}}",
+      "sha256": "01e42ec22fe6a507ab23e05e9dd263924e43d318b8701245b760697f5caba7bf"
+    },
+    {
+      "name": "empty-string-value",
+      "value": {
+        "note": ""
+      },
+      "canonical": "{\"note\":\"\"}",
+      "sha256": "c275a7593429639563e6599ebbac55412bdb7d6a76ca799cf4eada09fa80f18f"
+    },
+    {
+      "name": "empty-list-value",
+      "value": {
+        "labels": []
+      },
+      "canonical": "{\"labels\":[]}",
+      "sha256": "5d4f265fd067634807932ea31fedb1c02225fdfb87909b4c8b900e13081c5b04"
+    },
+    {
+      "name": "ascii-bounds-0x20-0x7e",
+      "value": {
+        "chars": " ~"
+      },
+      "canonical": "{\"chars\":\" ~\"}",
+      "sha256": "006531dd1cb83ac86179950ff48792b7485a1c16e8f9f931eaf44d43c6d700a2"
+    },
+    {
+      "name": "printable-ascii-except-quote-backslash",
+      "value": {
+        "chars": " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+      },
+      "canonical": "{\"chars\":\" !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~\"}",
+      "sha256": "621221d74a893240d5ee1a8257d89ca4877de99c67a19a669eceb06ff3a4668c"
+    },
+    {
+      "name": "ist-midnight-to-utc",
+      "value": {
+        "earliest_plausible_reveal": "2026-12-31T18:30:00Z"
+      },
+      "canonical": "{\"earliest_plausible_reveal\":\"2026-12-31T18:30:00Z\"}",
+      "sha256": "6c6722f3068da12cfd9a0c02e746032f75473adb5cfeff14b4bd2d5d95d93c3d"
+    },
+    {
+      "name": "key-order-by-code-point",
+      "value": {
+        "b": "1",
+        "a_b": "2",
+        "a0": "3",
+        "a": "4",
+        "ab": "5"
+      },
+      "canonical": "{\"a\":\"4\",\"a0\":\"3\",\"a_b\":\"2\",\"ab\":\"5\",\"b\":\"1\"}",
+      "sha256": "545ca08316ee7d2135b73c50c65fc482e751d8a3ee39e54ad8fe60ca0d477aca"
+    },
+    {
+      "name": "deep-key-order",
+      "value": {
+        "z": {
+          "y": {
+            "b": "1",
+            "a": "2"
+          },
+          "x": "3"
+        },
+        "a": "4"
+      },
+      "canonical": "{\"a\":\"4\",\"z\":{\"x\":\"3\",\"y\":{\"a\":\"2\",\"b\":\"1\"}}}",
+      "sha256": "3344f5a93c868502fe2a19fb24f8c56140275caa5030d505c27a976f2f5cfe08"
+    },
+    {
+      "name": "list-order-preserved",
+      "value": {
+        "xs": [
+          "b",
+          "a",
+          "c",
+          "a"
+        ]
+      },
+      "canonical": "{\"xs\":[\"b\",\"a\",\"c\",\"a\"]}",
+      "sha256": "87131a2e76e2ac1cde2d005a8626162597f40549a48671a0d6adfcbc05ebffe4"
+    },
+    {
+      "name": "top-level-string",
+      "value": "calledit",
+      "canonical": "\"calledit\"",
+      "sha256": "52c5ca81fb33d3ce2c0d888eb2f4340000b73da2457cd508517b76b74ed2f726"
+    },
+    {
+      "name": "top-level-list",
+      "value": [
+        "2",
+        "10",
+        "1"
+      ],
+      "canonical": "[\"2\",\"10\",\"1\"]",
+      "sha256": "a14f14b503a55add4ed6c761b94cea57210c91434bc02858af7280064f1d7407"
+    },
+    {
+      "name": "empty-object",
+      "value": {},
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    }
+  ],
+  "reject": [
+    {
+      "name": "rupee-sign",
+      "value": {
+        "amount": "\u20b9100"
+      },
+      "reason": "non-ASCII character"
+    },
+    {
+      "name": "double-quote",
+      "value": {
+        "a": "say \"hi\""
+      },
+      "reason": "double quote"
+    },
+    {
+      "name": "backslash",
+      "value": {
+        "a": "C:\\path"
+      },
+      "reason": "backslash"
+    },
+    {
+      "name": "control-0x1f",
+      "value": {
+        "a": "\u001f"
+      },
+      "reason": "control character 0x1F"
+    },
+    {
+      "name": "del-0x7f",
+      "value": {
+        "a": "\u007f"
+      },
+      "reason": "DEL 0x7F"
+    },
+    {
+      "name": "newline",
+      "value": {
+        "a": "line\n"
+      },
+      "reason": "control character 0x0A"
+    },
+    {
+      "name": "tab",
+      "value": {
+        "a": "\t"
+      },
+      "reason": "control character 0x09"
+    },
+    {
+      "name": "json-number-int",
+      "value": {
+        "seq": 0
+      },
+      "reason": "number"
+    },
+    {
+      "name": "json-number-float",
+      "value": {
+        "x": 1.5
+      },
+      "reason": "number"
+    },
+    {
+      "name": "json-null",
+      "value": {
+        "a": null
+      },
+      "reason": "null"
+    },
+    {
+      "name": "json-true",
+      "value": {
+        "a": true
+      },
+      "reason": "boolean"
+    },
+    {
+      "name": "json-false",
+      "value": {
+        "a": false
+      },
+      "reason": "boolean"
+    },
+    {
+      "name": "uppercase-key",
+      "value": {
+        "Seq": "0"
+      },
+      "reason": "key must be lower-case"
+    },
+    {
+      "name": "hyphen-key",
+      "value": {
+        "prev-hash": "x"
+      },
+      "reason": "key may not contain a hyphen"
+    },
+    {
+      "name": "leading-digit-key",
+      "value": {
+        "0a": "x"
+      },
+      "reason": "key must start with a letter"
+    },
+    {
+      "name": "leading-underscore-key",
+      "value": {
+        "_a": "x"
+      },
+      "reason": "key must start with a letter"
+    },
+    {
+      "name": "empty-key",
+      "value": {
+        "": "x"
+      },
+      "reason": "empty key"
+    },
+    {
+      "name": "nested-number",
+      "value": {
+        "a": [
+          {
+            "b": 1
+          }
+        ]
+      },
+      "reason": "number nested in a list of dicts"
+    },
+    {
+      "name": "top-level-number",
+      "value": 5,
+      "reason": "number"
+    },
+    {
+      "name": "top-level-null",
+      "value": null,
+      "reason": "null"
+    }
+  ],
+  "formatting": [
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "0.125",
+      "expected": "0.12"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "0.135",
+      "expected": "0.14"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "-1.005",
+      "expected": "-1.00"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "0",
+      "expected": "0.00"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "-0.001",
+      "expected": "0.00"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "1234567890.125",
+      "expected": "1234567890.12"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "decimal",
+      "input": "18123.4",
+      "expected": "18123.40"
+    },
+    {
+      "fn": "format_money",
+      "input_type": "float",
+      "input": "0.125",
+      "refused": true
+    },
+    {
+      "fn": "format_money",
+      "input_type": "int",
+      "input": "1",
+      "refused": true
+    },
+    {
+      "fn": "format_money",
+      "input_type": "str",
+      "input": "0.12",
+      "refused": true
+    },
+    {
+      "fn": "format_ratio",
+      "input_type": "decimal",
+      "input": "0.0000005",
+      "expected": "0.000000"
+    },
+    {
+      "fn": "format_ratio",
+      "input_type": "decimal",
+      "input": "0.0000015",
+      "expected": "0.000002"
+    },
+    {
+      "fn": "format_ratio",
+      "input_type": "decimal",
+      "input": "-0.03125",
+      "expected": "-0.031250"
+    },
+    {
+      "fn": "format_ratio",
+      "input_type": "float",
+      "input": "0.5",
+      "refused": true
+    },
+    {
+      "fn": "format_ts",
+      "input_type": "datetime",
+      "input": "2027-01-01T00:00:00+05:30",
+      "expected": "2026-12-31T18:30:00Z"
+    },
+    {
+      "fn": "format_ts",
+      "input_type": "datetime",
+      "input": "2026-11-28T06:00:00+00:00",
+      "expected": "2026-11-28T06:00:00Z"
+    },
+    {
+      "fn": "format_ts",
+      "input_type": "datetime",
+      "input": "2027-01-01T00:00:00",
+      "refused": true
+    },
+    {
+      "fn": "format_ts",
+      "input_type": "datetime",
+      "input": "2027-01-01T00:00:00.500000+00:00",
+      "refused": true
+    },
+    {
+      "fn": "format_ts",
+      "input_type": "float",
+      "input": "1790000000.0",
+      "refused": true
+    },
+    {
+      "fn": "format_date",
+      "input_type": "date",
+      "input": "2026-12-31",
+      "expected": "2026-12-31"
+    },
+    {
+      "fn": "format_date",
+      "input_type": "datetime",
+      "input": "2026-12-31T00:00:00+00:00",
+      "refused": true
+    },
+    {
+      "fn": "format_date",
+      "input_type": "float",
+      "input": "20261231.0",
+      "refused": true
+    },
+    {
+      "fn": "format_int",
+      "input_type": "int",
+      "input": "0",
+      "expected": "0"
+    },
+    {
+      "fn": "format_int",
+      "input_type": "int",
+      "input": "42",
+      "expected": "42"
+    },
+    {
+      "fn": "format_int",
+      "input_type": "int",
+      "input": "-7",
+      "expected": "-7"
+    },
+    {
+      "fn": "format_int",
+      "input_type": "bool",
+      "input": "true",
+      "refused": true
+    },
+    {
+      "fn": "format_int",
+      "input_type": "float",
+      "input": "1.0",
+      "refused": true
+    }
+  ]
+}
