@@ -1,0 +1,6 @@
+PREREGISTRATION.md -text
+config/universe.toml -text
+ledger/** -text
+*.ots binary
+data/seed/*.csv -text
+tests/fixtures/hash_vectors.json -text
