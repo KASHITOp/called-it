@@ -32,8 +32,16 @@ from calledit_data.seed.loader import (
 from pydantic import ValidationError
 from sqlalchemy.engine import make_url
 
+from nowcaster.baseline import (
+    MODEL_VERSION,
+    REASON_MISSING,
+    BaselineRefusal,
+    BaselineResult,
+    compute_baseline,
+    window_for,
+)
 from nowcaster.clock import now_utc
-from nowcaster.ledger.canonical import CanonicalError, format_ts
+from nowcaster.ledger.canonical import CanonicalError, format_money, format_ts
 from nowcaster.ledger.chain import ForkError, RecordError
 from nowcaster.ledger.export import ExportError, export_ledger
 from nowcaster.rules import RulesError, append_rules_record
@@ -254,6 +262,73 @@ def _open_store(settings: Settings) -> tuple[sa.Engine | None, str | None]:
         engine.dispose()
         return None, "no reveal events stored (run: uv run alembic upgrade head)"
     return engine, None
+
+
+def _baseline_lines(outcome: BaselineResult | BaselineRefusal) -> list[str]:
+    lines = [f"company {outcome.ticker}"]
+    if isinstance(outcome, BaselineRefusal):
+        lines.append(
+            f"  REFUSED {outcome.reason_code}: {', '.join(outcome.missing_quarters) or 'none'}"
+        )
+        return lines
+    pair = "none" if outcome.pair is None else f"({outcome.pair[0]}, {outcome.pair[1]})"
+    lines += [
+        f"  method: {outcome.method}",
+        f"  window: {outcome.window_quarters[0]}..{outcome.window_quarters[-1]}",
+        f"  pair: {pair}",
+        f"  pair_status: {outcome.pair_status}",
+        f"  sqly: {outcome.sqly_quarter}",
+        f"  point_inr_cr: {format_money(outcome.point)}",
+        f"  growth: {outcome.growth_str}",
+        f"  labels: {_show(outcome.labels)}",
+        f"  breaks_in_window: {_show(outcome.breaks_in_window)}",
+        f"  snapshot_sha256: {outcome.snapshot_sha256}",
+    ]
+    return lines
+
+
+@app.command("baseline")
+def baseline(
+    quarter: Annotated[str, typer.Option("--quarter", help="Fiscal quarter, e.g. Q3FY27.")],
+) -> None:
+    """Preview each enabled company's baseline for a quarter (read-only; never locks)."""
+    try:
+        fq = FiscalQuarter.parse(quarter)
+    except ValueError as exc:
+        typer.echo(f"baseline: refused: {exc}", err=True)
+        raise typer.Exit(2) from None
+    settings = _settings_or_exit()
+    loaded = _universe_or_exit(settings, "baseline")
+    as_of = now_utc()
+    engine, note = _open_store(settings)
+    typer.echo(f"quarter: {fq.label} ({fq.start.isoformat()}..{fq.end.isoformat()})")
+    typer.echo(f"as_of: {format_ts(as_of)} (live reader)")
+    typer.echo(f"model_version: {MODEL_VERSION}")
+    if note is not None:
+        typer.echo(f"note: {note}; no observation can be read, every company is refused")
+    try:
+        reader = None if engine is None else PointInTimeReader(engine, as_of, "live")
+        for company in loaded.enabled():
+            outcome: BaselineResult | BaselineRefusal
+            if reader is None:
+                outcome = BaselineRefusal(
+                    company.ticker,
+                    fq.label,
+                    as_of,
+                    REASON_MISSING,
+                    tuple(q.label for q in window_for(fq)),
+                )
+            else:
+                outcome = compute_baseline(company, fq, reader, loaded.breaks_for(company.ticker))
+            for line in _baseline_lines(outcome):
+                typer.echo(line)
+    except Exception as exc:  # noqa: BLE001 - DB errors: class name only, never the URL
+        typer.echo(f"baseline: failed reading observations ({type(exc).__name__})", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        if engine is not None:
+            engine.dispose()
+    typer.echo(f"universe_sha256: {loaded.universe_sha256}")
 
 
 @seed_app.command("load")
