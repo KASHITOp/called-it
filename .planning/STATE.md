@@ -4,10 +4,10 @@ current_phase: 01
 current_phase_name: First Baseline-Only Lock
 status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-11-18T11:08:24.882Z"
-last_activity: 2026-11-17
-last_activity_desc: Roadmap approved (6 phases, 66/66 v1 requirements mapped, all 24 [CRITICAL] in Phase 1); GST 2.0 treatment moved to Phase 3 as FEAT-03
-state_head: dfb31cdf77d0ffdde4809f889fd3becc4ba18c7c
+last_updated: "2026-11-18T11:57:46.096Z"
+last_activity: 2026-11-18
+last_activity_desc: Phase 01 execution started
+state_head: 45f93e9c42d81d9d0451c823716d4d54efbfc9ab
 progress:
   total_phases: 6
   completed_phases: 0
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-17)
 
 **Core value:** Provably honest predictions: every call uses only data public at the time, is locked with a verifiable hash before the reveal, is never edited, and is graded in public against a naive baseline, even when the baseline wins.
-**Current focus:** Phase 1 — First Baseline-Only Lock (critical path; the lock is due on or before 1 Dec 2026)
+**Current focus:** Phase 01 — First Baseline-Only Lock
 
 ## Current Position
 
-Phase: 01 (First Baseline-Only Lock) — READY TO EXECUTE
-Plan: 0 of TBD in current phase
-Status: Ready to execute
-Last activity: 2026-11-17 — Roadmap approved (6 phases, 66/66 v1 requirements mapped, all 24 [CRITICAL] in Phase 1); GST 2.0 treatment moved to Phase 3 as FEAT-03
+Phase: 01 (First Baseline-Only Lock) — EXECUTING
+Plan: 1 of 13
+Status: Executing Phase 01
+Last activity: 2026-11-18 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
