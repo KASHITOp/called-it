@@ -8,7 +8,6 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
-
 from nowcaster.ledger import canonical
 from nowcaster.ledger.canonical import (
     GENESIS_PREV_HASH,
@@ -18,6 +17,7 @@ from nowcaster.ledger.canonical import (
     sha256_hex,
     validate,
 )
+
 from tests.conftest import REPO_ROOT
 
 VECTORS_PATH = REPO_ROOT / "tests" / "fixtures" / "hash_vectors.json"

@@ -114,9 +114,12 @@ def export_ledger(engine: sa.Engine, out_dir: Path) -> ExportReport:
     old_bytes: bytes | None = None
     if ledger_path.exists():
         old_bytes = ledger_path.read_bytes()
-        if not new_bytes.startswith(old_bytes):
+        # The old file must be a whole-line prefix: a file cut mid-line is corrupt, and
+        # silently "completing" it would hide that the published witness was damaged.
+        whole_lines = old_bytes == b"" or old_bytes.endswith(b"\n")
+        if not (whole_lines and new_bytes.startswith(old_bytes)):
             raise ExportError(
-                f"{LEDGER_FILE} on disk is not a byte-prefix of the verified chain; "
+                f"{LEDGER_FILE} on disk is not a whole-line byte-prefix of the verified chain; "
                 "refusing to rewrite history"
             )
         old_lines = old_bytes.count(b"\n")
