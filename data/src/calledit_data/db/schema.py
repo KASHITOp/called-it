@@ -109,3 +109,12 @@ STORE_SQLITE_TRIGGERS = (
     "reveal_events_no_delete",
     "reveal_events_no_replace",
 )
+
+# Postgres: every ledger/store table carries a row trigger (UPDATE OR DELETE) and a statement
+# trigger (TRUNCATE), both ENABLE ALWAYS (0001, 0002). ``nowcast db check`` asserts them.
+PG_PROTECTED_TABLES = ("predictions", *STORE_TABLES)
+PG_REQUIRED_TRIGGERS = tuple(
+    f"{table}_{suffix}"
+    for table in PG_PROTECTED_TABLES
+    for suffix in ("no_update_delete", "no_truncate")
+)
