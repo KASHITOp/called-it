@@ -133,7 +133,9 @@ class ScratchFactory:
     def create(self) -> ScratchDb:
         name = assert_scratch_schema("calledit_test_" + secrets.token_hex(6))
         try:
-            settings = Settings(database_url=self.url, calledit_env="test", db_schema=name)
+            settings = Settings(
+                _env_file=None, database_url=self.url, calledit_env="test", db_schema=name
+            )
         except Exception as exc:  # noqa: BLE001 - never echo the value
             pytest.fail(
                 f"TEST_DATABASE_URL is not usable as a settings URL ({type(exc).__name__})",
@@ -186,15 +188,16 @@ class ScratchFactory:
         engine = sa.create_engine(
             self.url, poolclass=sa.pool.NullPool, connect_args={"prepare_threshold": None}
         )
+        left: list[str] = []
         try:
             with engine.connect() as conn:
-                left = [
-                    row[0]
-                    for row in conn.execute(
-                        sa.text("SELECT nspname FROM pg_namespace WHERE nspname = ANY(:names)"),
-                        {"names": names},
-                    )
-                ]
+                for name in names:
+                    found = conn.execute(
+                        sa.text("SELECT nspname FROM pg_namespace WHERE nspname = :name"),
+                        {"name": assert_scratch_schema(name)},
+                    ).first()
+                    if found is not None:
+                        left.append(name)
         finally:
             engine.dispose()
         if left:

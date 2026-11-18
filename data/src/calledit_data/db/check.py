@@ -178,7 +178,10 @@ def _check_postgres(connection: sa.Connection, schema: str, report: DbCheckRepor
                 _line(report, check_name, True, f" (no {role_name} role on this server)")
                 continue
             usage = connection.execute(
-                sa.text("SELECT has_schema_privilege(:role, :schema, 'USAGE')"),
+                sa.text(
+                    "SELECT has_schema_privilege("
+                    "CAST(:role AS text), CAST(:schema AS text), 'USAGE')"
+                ),
                 {"role": role_name, "schema": schema},
             ).scalar_one()
             _line(
