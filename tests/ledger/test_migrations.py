@@ -38,20 +38,20 @@ def _version(engine: sa.Engine) -> str:
 
 def test_triggers_exist_after_upgrade(migrated_sqlite: sa.Engine) -> None:
     assert set(PREDICTIONS_SQLITE_TRIGGERS) <= _triggers(migrated_sqlite)
-    assert _version(migrated_sqlite) == "0001"
+    assert _version(migrated_sqlite) == "0002"
 
 
 def test_second_upgrade_is_a_no_op(migrated_sqlite: sa.Engine) -> None:
     command.upgrade(alembic_config(), "head")
     assert set(PREDICTIONS_SQLITE_TRIGGERS) <= _triggers(migrated_sqlite)
-    assert _version(migrated_sqlite) == "0001"
+    assert _version(migrated_sqlite) == "0002"
 
 
 def test_downgrade_is_refused_and_keeps_the_ledger(migrated_sqlite: sa.Engine) -> None:
     with pytest.raises(RuntimeError, match="append-only"):
         command.downgrade(alembic_config(), "base")
     assert set(PREDICTIONS_SQLITE_TRIGGERS) <= _triggers(migrated_sqlite)
-    assert _version(migrated_sqlite) == "0001"
+    assert _version(migrated_sqlite) == "0002"
 
 
 def test_no_migration_uses_batch_mode() -> None:

@@ -16,6 +16,12 @@ from calledit_data.calendar.tz import to_ist
 from calledit_data.db.check import env_file_lines, run_db_check
 from calledit_data.db.engine import make_engine
 from calledit_data.db.settings import LiveContextError, Settings, get_settings
+from calledit_data.seed.loader import (
+    CANONICAL_SEED_PATH,
+    SeedCompanyRules,
+    SeedError,
+    load_seed,
+)
 from pydantic import ValidationError
 
 from nowcaster.clock import now_utc
@@ -34,8 +40,10 @@ app = typer.Typer(
 )
 db_app = typer.Typer(help="Database checks.", no_args_is_help=True)
 ledger_app = typer.Typer(help="The hash-chained ledger.", no_args_is_help=True)
+seed_app = typer.Typer(help="Hand-curated seed data.", no_args_is_help=True)
 app.add_typer(db_app, name="db")
 app.add_typer(ledger_app, name="ledger")
+app.add_typer(seed_app, name="seed")
 
 
 def _settings_or_exit(*, report_env: bool = False) -> Settings:
@@ -193,6 +201,69 @@ def calendar(
             f"quarter end + {company.reveal_offset_days}d at 00:00 IST)"
         )
     typer.echo(f"universe_sha256: {loaded.universe_sha256}")
+
+
+@seed_app.command("load")
+def seed_load(
+    csv_path: Annotated[
+        Path, typer.Option("--csv", help="Seed CSV (rehearsal/live: only the canonical file).")
+    ] = CANONICAL_SEED_PATH,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Validate the whole file; insert nothing.")
+    ] = False,
+    require_verified: Annotated[
+        bool, typer.Option("--require-verified", help="Treat any verified = N row as an error.")
+    ] = False,
+) -> None:
+    """Validate the seed CSV and load it into the point-in-time store in one transaction."""
+    settings = _settings_or_exit()
+    loaded = _universe_or_exit(settings, "seed load")
+    rules = {
+        c.ticker: SeedCompanyRules(isin=c.isin, has_business_update=c.has_business_update)
+        for c in loaded.companies
+    }
+    if not csv_path.is_file():
+        typer.echo(f"seed load: refused: no such file: {csv_path.as_posix()}", err=True)
+        raise typer.Exit(1)
+    engine = None if dry_run else make_engine(settings)
+    try:
+        report = load_seed(
+            engine,
+            csv_path,
+            rules,
+            settings,
+            now=now_utc(),
+            dry_run=dry_run,
+            require_verified=require_verified,
+        )
+    except (SeedError, LiveContextError) as exc:
+        typer.echo(f"seed load: refused: {exc}", err=True)
+        raise typer.Exit(1) from None
+    except Exception as exc:  # noqa: BLE001 - DB errors: class name only, never the URL
+        typer.echo(
+            f"seed load: failed ({type(exc).__name__}); nothing inserted. "
+            "Is the store migrated? run: uv run alembic upgrade head",
+            err=True,
+        )
+        raise typer.Exit(1) from None
+    finally:
+        if engine is not None:
+            engine.dispose()
+    if report.errors:
+        for error in report.errors:
+            typer.echo(f"  {error}", err=True)
+        typer.echo(
+            f"seed load: refused: {len(report.errors)} error(s) in {report.rows_seen} rows; "
+            "nothing inserted",
+            err=True,
+        )
+        raise typer.Exit(1)
+    mode = " (dry run: nothing inserted)" if report.dry_run else ""
+    typer.echo(
+        f"seed load{mode}: {report.rows_seen} rows seen, "
+        f"{report.observations_inserted} observations inserted, "
+        f"{report.events_inserted} reveal events inserted"
+    )
 
 
 @ledger_app.command("export")

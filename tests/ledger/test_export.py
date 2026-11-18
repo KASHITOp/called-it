@@ -128,7 +128,7 @@ def throwaway_copy(migrated_sqlite: sa.Engine, tmp_path: Path) -> Iterator[tuple
     engine = make_engine(settings)
     with engine.connect() as conn:
         left = conn.exec_driver_sql(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'"
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'predictions'"
         ).scalar_one()
     assert left == 0
     try:
