@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 1
 waived_count: 0
-fixed_count: 0
+fixed_count: 1
 total_count: 2
-last_updated: 2026-11-18T16:29:09.765Z
+last_updated: 2026-11-18T20:35:14.119Z
 ---
 
 # Broken Windows Ledger
@@ -16,7 +16,7 @@ last_updated: 2026-11-18T16:29:09.765Z
 | id | phase | kind | file | line | description | status | reason | recorded_at | resolved_at |
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 01 | stub | data/src/calledit_data/db/check.py | 76 | db check reports FAIL on postgresql (trigger/RLS/replication-role checks deferred to Plan 01-08); --connect-only works | open |  | 2026-11-18T15:00:42.422Z |  |
-| 2 | 01 | stub | nowcaster/src/nowcaster/cli.py |  | nowcast calendar prints business_update_at/results_at/reveal_at: none and status: expected for every company; reveal events are stored from Plan 01-04, which must wire them in | open |  | 2026-11-18T16:29:09.765Z |  |
+| 2 | 01 | stub | nowcaster/src/nowcaster/cli.py |  | nowcast calendar prints business_update_at/results_at/reveal_at: none and status: expected for every company; reveal events are stored from Plan 01-04, which must wire them in | fixed |  | 2026-11-18T16:29:09.765Z | 2026-11-18T20:35:14.119Z |
 
 ````json
 [
@@ -40,10 +40,10 @@ last_updated: 2026-11-18T16:29:09.765Z
     "file": "nowcaster/src/nowcaster/cli.py",
     "line": null,
     "description": "nowcast calendar prints business_update_at/results_at/reveal_at: none and status: expected for every company; reveal events are stored from Plan 01-04, which must wire them in",
-    "status": "open",
+    "status": "fixed",
     "reason": "",
     "recorded_at": "2026-11-18T16:29:09.765Z",
-    "resolved_at": null,
+    "resolved_at": "2026-11-18T20:35:14.119Z",
     "milestone": null
   }
 ]
