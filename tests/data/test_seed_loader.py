@@ -138,10 +138,10 @@ def test_bad_file_lists_every_error_and_inserts_nothing(
         tmp_path / "bad.csv",
         [
             dmart(source_url="http://example.invalid/synthetic-fixture"),
-            dmart(**Q1FY27, period_end="2026-06-29"),
+            dmart(**(Q1FY27 | {"period_end": "2026-06-29"})),
             dmart(**Q4FY26, revenue_cr="12,345.6"),
-            dmart(**Q3FY26, results_date="2025-12-30T17:30+05:30"),
-            dmart(**Q2FY26, results_date="2025-10-11"),
+            dmart(**(Q3FY26 | {"results_date": "2025-12-30T17:30+05:30"})),
+            dmart(**(Q2FY26 | {"results_date": "2025-10-11"})),
             dmart(ticker="RELIANCE", isin="INE002A01018"),
         ],
     )
@@ -434,7 +434,9 @@ def test_cli_dry_run_on_canonical_csv(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_cli_lists_every_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CALLEDIT_UNIVERSE_PATH", str(REPO_ROOT / "config" / "universe.toml"))
-    path = write_csv(tmp_path / "bad.csv", [dmart(revenue_cr="1"), dmart(verified="maybe")])
+    path = write_csv(
+        tmp_path / "bad.csv", [dmart(revenue_cr="1"), dmart(**Q1FY27, verified="maybe")]
+    )
     result = CliRunner().invoke(app, ["seed", "load", "--dry-run", "--csv", str(path)])
     assert result.exit_code == 1
     assert "row 2, column revenue_cr" in result.output

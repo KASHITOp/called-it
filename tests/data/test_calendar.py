@@ -48,9 +48,9 @@ def results_date_only(day: date, quarter: str = "Q2FY27") -> RevealEventIn:
     )
 
 
-def store(engine: sa.Engine, events: list[RevealEventIn]) -> None:
+def store(engine: sa.Engine, events: list[RevealEventIn], ingested_at: datetime = INGESTED) -> None:
     with engine.begin() as conn:
-        insert_reveal_events(conn, events, INGESTED)
+        insert_reveal_events(conn, events, ingested_at)
 
 
 def cal(engine: sa.Engine, quarter: FiscalQuarter = Q2, as_of: datetime = AS_OF) -> RevealCalendar:
@@ -69,7 +69,9 @@ def test_confirmed_quarter_uses_the_early_bound(migrated_sqlite: sa.Engine) -> N
 
 
 def test_event_after_as_of_is_not_visible(migrated_sqlite: sa.Engine) -> None:
-    store(migrated_sqlite, [bu(date(2026, 10, 3)), results(_ts("2026-10-11T12:00:00Z"))])
+    early_ingest = _ts("2026-10-01T00:00:00Z")
+    events = [bu(date(2026, 10, 3)), results(_ts("2026-10-11T12:00:00Z"))]
+    store(migrated_sqlite, events, early_ingest)
     mid = cal(migrated_sqlite, as_of=_ts("2026-10-05T00:00:00Z"))
     assert mid.status == "confirmed"
     assert mid.results_at is None

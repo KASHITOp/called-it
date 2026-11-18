@@ -6,16 +6,23 @@ Every failure exits non-zero with a fixed message that never contains the DATABA
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
+import sqlalchemy as sa
 import typer
 from calledit_data.calendar.fiscal import FiscalQuarter
-from calledit_data.calendar.reveal import earliest_plausible_reveal
+from calledit_data.calendar.reveal import (
+    RevealCalendar,
+    earliest_plausible_reveal,
+    reveal_calendar,
+)
 from calledit_data.calendar.tz import to_ist
 from calledit_data.db.check import env_file_lines, run_db_check
 from calledit_data.db.engine import make_engine
 from calledit_data.db.settings import LiveContextError, Settings, get_settings
+from calledit_data.pit.reader import PointInTimeReader
 from calledit_data.seed.loader import (
     CANONICAL_SEED_PATH,
     SeedCompanyRules,
@@ -23,6 +30,7 @@ from calledit_data.seed.loader import (
     load_seed,
 )
 from pydantic import ValidationError
+from sqlalchemy.engine import make_url
 
 from nowcaster.clock import now_utc
 from nowcaster.ledger.canonical import CanonicalError, format_ts
@@ -186,21 +194,66 @@ def calendar(
         raise typer.Exit(2) from None
     settings = _settings_or_exit()
     loaded = _universe_or_exit(settings, "calendar")
+    as_of = now_utc()
+    engine, note = _open_store(settings)
     typer.echo(f"quarter: {fq.label} ({fq.start.isoformat()}..{fq.end.isoformat()})")
-    for company in loaded.enabled():
-        epr = earliest_plausible_reveal(fq, company.reveal_offset_days)
-        ist = to_ist(epr).strftime("%Y-%m-%d %H:%M:%S IST")
-        typer.echo(f"company {company.ticker}")
-        # No reveal events are stored before Plan 01-04, so every quarter is still expected.
-        typer.echo("  business_update_at: none")
-        typer.echo("  results_at: none")
-        typer.echo("  reveal_at: none")
-        typer.echo("  status: expected")
-        typer.echo(
-            f"  earliest_plausible_reveal: {format_ts(epr)} ({ist}; "
-            f"quarter end + {company.reveal_offset_days}d at 00:00 IST)"
-        )
+    typer.echo(f"as_of: {format_ts(as_of)} (live reader)")
+    if note is not None:
+        typer.echo(f"note: {note}; showing the earliest plausible reveal only")
+    try:
+        reader = None if engine is None else PointInTimeReader(engine, as_of, "live")
+        for company in loaded.enabled():
+            offset = company.reveal_offset_days
+            if reader is None:
+                cal = RevealCalendar(
+                    None, None, None, "expected", earliest_plausible_reveal(fq, offset)
+                )
+            else:
+                cal = reveal_calendar(reader, company.ticker, fq, offset)
+            epr = cal.earliest_plausible_reveal
+            ist = to_ist(epr).strftime("%Y-%m-%d %H:%M:%S IST")
+            typer.echo(f"company {company.ticker}")
+            typer.echo(f"  business_update_at: {_ts_or_none(cal.business_update_at)}")
+            typer.echo(f"  results_at: {_ts_or_none(cal.results_at)}")
+            typer.echo(f"  reveal_at: {_ts_or_none(cal.reveal_at)} (early bound, D-27)")
+            typer.echo(f"  status: {cal.status}")
+            typer.echo(
+                f"  earliest_plausible_reveal: {format_ts(epr)} ({ist}; "
+                f"quarter end + {offset}d at 00:00 IST)"
+            )
+    except Exception as exc:  # noqa: BLE001 - DB errors: class name only, never the URL
+        typer.echo(f"calendar: failed reading reveal events ({type(exc).__name__})", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        if engine is not None:
+            engine.dispose()
     typer.echo(f"universe_sha256: {loaded.universe_sha256}")
+
+
+def _ts_or_none(value: datetime | None) -> str:
+    return "none" if value is None else format_ts(value)
+
+
+def _open_store(settings: Settings) -> tuple[sa.Engine | None, str | None]:
+    """An engine on the store, or ``(None, reason)`` when there is no store to read.
+
+    A missing SQLite file is never created here: the calendar is read-only.
+    """
+    if settings.backend == "sqlite":
+        database = make_url(settings.database_url.get_secret_value()).database or ""
+        if database in ("", ":memory:") or not Path(database).is_file():
+            return None, "no reveal events stored (no local database)"
+    engine = make_engine(settings)
+    try:
+        with engine.connect() as conn:
+            present = sa.inspect(conn).has_table("reveal_events", schema=settings.effective_schema)
+    except Exception as exc:  # noqa: BLE001 - fixed message, class name only
+        engine.dispose()
+        return None, f"no reveal events stored (store unavailable: {type(exc).__name__})"
+    if not present:
+        engine.dispose()
+        return None, "no reveal events stored (run: uv run alembic upgrade head)"
+    return engine, None
 
 
 @seed_app.command("load")
