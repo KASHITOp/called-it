@@ -1,0 +1,92 @@
+# CI for CALLED IT.: the SQLite suite, the same ledger and store on a real postgres:17 service
+# (D-29), and an early smoke test of the OpenTimestamps client import on Linux (assumption A1).
+#
+# This workflow references no repository secret and has read-only repository permissions.
+# The Postgres job talks only to its own throwaway service container; it can never reach the
+# Supabase project. Third-party actions are pinned to the commit SHA of their release tag
+# (the tag is kept in the trailing comment so a bump is a reviewed one-line change).
+name: ci-postgres
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sqlite:
+    name: SQLite suite and web tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      # The postgres-marked tests skip here (no TEST_DATABASE_URL); the postgres job runs them.
+      - run: uv run pytest -q
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+      - run: npm test --prefix web
+
+  postgres:
+    name: Postgres 17 service suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # A service container created for this job only. CALLEDIT_REQUIRE_PG makes a missing URL
+      # (or any skip) an error, so the Postgres tests cannot silently stop running.
+      TEST_DATABASE_URL: postgresql+psycopg://postgres@localhost:5432/postgres
+      CALLEDIT_REQUIRE_PG: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --locked
+      - name: Postgres tests (guarded scratch schemas, zero skips)
+        run: uv run pytest tests/postgres -m postgres -q -rs
+      - name: Migrate and self-check a CI schema (FOUND-04)
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres@localhost:5432/postgres
+          CALLEDIT_ENV: test
+          CALLEDIT_DB_SCHEMA: calledit_ci
+        run: |
+          uv run alembic upgrade head
+          uv run alembic upgrade head
+          uv run nowcast db check
+
+  ots-smoke:
+    name: OpenTimestamps client import (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # Falsifies assumption A1 early: the ots CLI imports and runs on Linux. No network stamping.
+      - run: uv sync --locked --group ots
+      - run: uv run ots --version
