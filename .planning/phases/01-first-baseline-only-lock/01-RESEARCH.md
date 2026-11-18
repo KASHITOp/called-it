@@ -607,16 +607,16 @@ def ttm_baseline(sqly: Decimal, recent4: list[Decimal], prior4: list[Decimal]) -
 | A9 | OTS Bitcoin confirmation lands within a few hours (README: "a few hours") | Pattern 13 | Upgrade needs another dispatch the next day; the 3-day slack covers it |
 | A10 | Proposed lock-guard "live quarter" rule (`period_start <= now < earliest_plausible_reveal`) | Pattern 11 | Over- or under-restrictive; needs user confirmation since it is a preregistered rule |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **What counts as "`ots verify` accepts" (success criterion 5)?**
    - What we know: the Python `ots verify` exits 0 only with a reachable Bitcoin Core node [VERIFIED: cmds.py]. No node is available; a pruned node still needs a full initial sync. The JS client is unmaintained since 2022.
-   - Recommendation: the criterion is met by (a) `ots upgrade` reporting "Success! Timestamp complete", (b) `ots --no-bitcoin verify -d <head_hash> ledger/proofs/<seq>.ots` printing block height and merkle root, and (c) `scripts/ots_explorer_check.py` confirming that merkle root on two independent explorers and that block time < reveal. Optionally (d) the user drops the files into the opentimestamps.org web verifier [ASSUMED available]. State on the methodology page that full trust-minimised verification needs a node. **The user confirms this reading.**
-2. **Eternal break range (start_q, end_q) and its citation.** It needs the primary shareholder letters (eternal IR). The plan should include a task where Claude drafts the range plus citation from the letters and the user confirms it, before PREREGISTRATION is frozen.
-3. **Reveal early-bound derivation (Pitfall 3).** Should VOID and cutoffs use `D 00:00 IST` for date-only events? Recommended: yes, written into PREREGISTRATION.
-4. **Default branch `main` or `master`.** This must be settled before the first push (witness URLs).
-5. **Postgres test target:** a CI `postgres:17` service now, or a Supabase scratch schema locally (or both)? Recommended: both, with the scratch-schema guard.
-6. **Live-quarter rule (A10)** and whether a run that locks some companies and records gaps for others should exit 0 or non-zero. Recommended: a distinct non-zero code (for example 3) after committing whatever was appended, so the Actions run is visibly red.
+   - Recommendation: the criterion is met by (a) `ots upgrade` reporting "Success! Timestamp complete", (b) `ots --no-bitcoin verify -d <head_hash> ledger/proofs/<seq>.ots` printing block height and merkle root, and (c) `scripts/ots_explorer_check.py` confirming that merkle root on two independent explorers and that block time < reveal. Optionally (d) the user drops the files into the opentimestamps.org web verifier [ASSUMED available]. State on the methodology page that full trust-minimised verification needs a node. **The user confirms this reading.** **RESOLVED (2026-11-18): D-26** in 01-CONTEXT.md, which adopts (a)+(b)+(c) and the Bitcoin-node statement. Implemented in Plans 01-10, 01-11, 01-12 and 01-13.
+2. **Eternal break range (start_q, end_q) and its citation.** It needs the primary shareholder letters (eternal IR). The plan should include a task where Claude drafts the range plus citation from the letters and the user confirms it, before PREREGISTRATION is frozen. **RESOLVED (2026-11-18):** Plan 01-09 Task 3 drafts the range and citation from the shareholder letters, and the user confirms them at the Plan 01-10 freeze checkpoint before PREREGISTRATION is frozen.
+3. **Reveal early-bound derivation (Pitfall 3).** Should VOID and cutoffs use `D 00:00 IST` for date-only events? Recommended: yes, written into PREREGISTRATION. **RESOLVED (2026-11-18): D-27.**
+4. **Default branch `main` or `master`.** This must be settled before the first push (witness URLs). **RESOLVED (2026-11-18): D-28** (`main`, renamed in Plan 01-01).
+5. **Postgres test target:** a CI `postgres:17` service now, or a Supabase scratch schema locally (or both)? Recommended: both, with the scratch-schema guard. **RESOLVED (2026-11-18): D-29** (both; Plan 01-08).
+6. **Live-quarter rule (A10)** and whether a run that locks some companies and records gaps for others should exit 0 or non-zero. Recommended: a distinct non-zero code (for example 3) after committing whatever was appended, so the Actions run is visibly red. **RESOLVED (2026-11-18):** the user adopted the recommendation through the orchestrator: the live-quarter rule, plus exit code 3 for a partial lock. Implemented in Plan 01-07 (`nowcaster/exit_codes.py`) and preregistered in Plan 01-10.
 
 ## Environment Availability
 

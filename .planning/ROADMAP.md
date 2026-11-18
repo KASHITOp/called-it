@@ -65,18 +65,37 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 13 plans
 
 Plans:
+**Wave 1**
 - [ ] 01-01-PLAN.md — Workspace manifests, .gitattributes, branch main, then the uv install + package-legitimacy gate
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — Walking skeleton: hash-chained rules record on SQLite exported to ledger.jsonl; Python/JS golden vectors; ledger integrity
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-03-PLAN.md — Fiscal calendar, IST/UTC bounds, config/universe.toml; `nowcast universe` and `nowcast calendar`
+
+**Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 01-04-PLAN.md — Insert-only point-in-time store, PointInTimeReader, whole-file seed loader, reveal calendar from events
+
+**Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 01-05-PLAN.md — Baseline-v1 (Decimal TTM, break-aware Eternal method, breaks_in_window, refusals); `nowcast baseline`
+- [ ] 01-08-PLAN.md — Postgres parity: .env fix gate, Supabase scratch-schema trigger tests, db check, ci-postgres.yml
+
+**Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 01-06-PLAN.md — Leakage suite: --reader switch, leaky readers, invariance property, meta-test, splitter, clock/import guards
 - [ ] 01-07-PLAN.md — `nowcast predict`: prediction/gap records, lock guard, exit codes, rules freshness
-- [ ] 01-08-PLAN.md — Postgres parity: .env fix gate, Supabase scratch-schema trigger tests, db check, ci-postgres.yml
 - [ ] 01-09-PLAN.md — Seed history drafted from company IR documents (verified = N) + Eternal break-range citation
+
+**Wave 7** *(blocked on Wave 6 completion)*
 - [ ] 01-10-PLAN.md — PREREGISTRATION.md, then the freeze checkpoint (user verifies seed, confirms Eternal range/ISINs, approves rules)
+
+**Wave 8** *(blocked on Wave 7 completion)*
 - [ ] 01-11-PLAN.md — Secret + publish gate, first push, ruleset, green CI, lock.yml, full dress rehearsal, discard
+
+**Wave 9** *(blocked on Wave 8 completion)*
 - [ ] 01-12-PLAN.md — Go-live gate and live seq 0 rules record, committed to main and OTS-stamped
+
+**Wave 10** *(blocked on Wave 9 completion)*
 - [ ] 01-13-PLAN.md — Go-live gate and first live Q3 FY27 baseline-only lock; OTS upgrade and D-26 verification; phase evidence sweep
 
 ### Phase 2: The Record Runs Itself
