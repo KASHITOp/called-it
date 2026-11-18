@@ -1,0 +1,86 @@
+# CALLED IT. company universe (FOUND-03, PIT-05). Research and educational use only.
+#
+# This is the single config that decides which companies are locked. Set enabled = false to
+# drop a company with no code change. universe_sha256 (the SHA-256 of these exact bytes) is
+# hashed into every rules and prediction record, so every edit is visible in the chain.
+# The file is LF-only and committed with -text (.gitattributes) so its bytes are stable.
+#
+# Strings must stay printable ASCII without double quotes or backslashes (calledit-ledger-v1).
+# Unconfirmed values (isin_confirmed = false, confirmed = false) are refused by live locks
+# until the user confirms them (Plan 01-10).
+
+schema_version = "universe-1"
+basis_note = "Target is consolidated revenue from operations in INR crore as reported in the quarterly results filing; never adjusted revenue."
+
+[[companies]]
+ticker = "DMART"
+name = "Avenue Supermarts Ltd"
+isin = "INE192R01011"
+isin_confirmed = true
+enabled = true
+revenue_basis = "consolidated_revenue_from_operations"
+reveal_offset_days = 1
+has_business_update = true
+gst_states = ["MH", "GJ", "TG", "KA"]
+gst_states_basis = "provisional selection from store footprint and metro concentration; re-derived from filings in Phase 3 FEAT-01 before any model lock"
+trends_terms = ["DMart", "DMart Ready"]
+apple_app_ids = ["1121933197"]
+play_package_ids = []
+labels = []
+symbol_history = []
+break_ids = ["gst2.0"]
+
+[[companies]]
+ticker = "ETERNAL"
+name = "Eternal Ltd"
+isin = "INE758T01015"
+isin_confirmed = false
+enabled = true
+revenue_basis = "consolidated_revenue_from_operations"
+reveal_offset_days = 7
+has_business_update = false
+gst_states = ["DL", "HR", "KA", "MH"]
+gst_states_basis = "provisional selection from store footprint and metro concentration; re-derived from filings in Phase 3 FEAT-01 before any model lock"
+trends_terms = ["Zomato", "Blinkit", "District"]
+apple_app_ids = ["434613896", "960335206", "6670536058"]
+play_package_ids = []
+labels = ["low confidence: post-break comparables limited"]
+symbol_history = [{ symbol = "ZOMATO", until = "2025-04-08" }]
+break_ids = ["eternal-blinkit-inventory", "gst2.0"]
+
+[[companies]]
+ticker = "TITAN"
+name = "Titan Company Ltd"
+isin = "INE280A01028"
+isin_confirmed = false
+enabled = true
+revenue_basis = "consolidated_revenue_from_operations"
+reveal_offset_days = 2
+has_business_update = true
+gst_states = ["KA", "MH", "TN", "DL"]
+gst_states_basis = "provisional selection from store footprint and metro concentration; re-derived from filings in Phase 3 FEAT-01 before any model lock"
+trends_terms = ["Tanishq", "CaratLane"]
+apple_app_ids = ["1494086207", "990574630"]
+play_package_ids = []
+labels = []
+symbol_history = []
+break_ids = ["gst2.0"]
+
+[[breaks]]
+id = "eternal-blinkit-inventory"
+kind = "quarter_range"
+applies_to = ["ETERNAL"]
+start_q = "Q1FY26"
+end_q = "Q3FY26"
+source_url = "https://inc42.com/buzz/eternal-q2-profit-tanks-63-yoy-to-inr-65-cr-revenue-up-183-yoy/"
+source_note = "drafted from secondary reporting; Plan 01-09 pins the range from Eternal's shareholder letters; user confirms at Plan 01-10"
+confirmed = false
+
+[[breaks]]
+id = "gst2.0"
+kind = "date"
+applies_to = ["*"]
+effective = 2025-09-22
+source_url = "https://www.business-standard.com/amp/economy/news/tax-turbulence-revenues-take-a-hit-in-first-full-month-of-gst-2-0-125120101323_1.html"
+source_note = "GST 2.0 rate rationalisation effective 22 Sep 2025; treatment deferred to FEAT-03 (D-07)"
+confirmed = true
