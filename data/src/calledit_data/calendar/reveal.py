@@ -11,13 +11,15 @@ rules and backtest cutoffs:
 - ``rule:date_eod_ist``: the stored value is the late bound ``D 23:59:59 IST`` (D-24); the
   early bound is that IST date at ``00:00:00 IST`` (D-27).
 
-Pure functions: no I/O and no wall clock.
+These are pure functions with no I/O and no wall clock, except ``reveal_calendar``, which reads
+stored events only through the point-in-time reader it is given.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
-from typing import Literal
+from typing import Any, Literal, Protocol
 
 from calledit_data.calendar.fiscal import FiscalQuarter
 from calledit_data.calendar.tz import IST, date_start_ist_utc, to_utc
@@ -60,4 +62,55 @@ def event_early_bound(event_at_utc: datetime, availability_basis: str) -> dateti
     raise ValueError(
         f"unknown availability_basis {availability_basis!r} "
         f"(expected one of {', '.join(AVAILABILITY_BASES)})"
+    )
+
+
+RevealStatus = Literal["expected", "confirmed"]
+
+
+@dataclass(frozen=True)
+class RevealCalendar:
+    """One company's reveal calendar for one quarter, as knowable at the reader's as_of.
+
+    ``business_update_at`` and ``results_at`` are the earliest known event of each kind,
+    shown as stored (the late bound for a date-only event). ``reveal_at`` is the earliest
+    early bound of all known events (D-27), or ``None`` while the quarter is ``expected``.
+    """
+
+    business_update_at: datetime | None
+    results_at: datetime | None
+    reveal_at: datetime | None
+    status: RevealStatus
+    earliest_plausible_reveal: datetime
+
+
+class _EventReader(Protocol):
+    def reveal_events(self, ticker: str, fiscal_quarter_label: str) -> tuple[Any, ...]: ...
+
+
+def reveal_calendar(
+    reader: _EventReader, ticker: str, quarter: FiscalQuarter, offset_days: int
+) -> RevealCalendar:
+    """Derive the calendar from stored reveal events read through the PIT gate (PIT-04).
+
+    The reader decides what is known: an event counts only once its stored ``event_at`` is
+    before ``as_of`` (and, in live mode, it was ingested by then).
+    """
+    epr = earliest_plausible_reveal(quarter, offset_days)  # also validates the arguments
+    events = reader.reveal_events(ticker, quarter.label)
+    earliest: dict[str, tuple[datetime, datetime]] = {}
+    for event in events:
+        bound = event_early_bound(event.event_at, event.availability_basis)
+        current = earliest.get(event.event_kind)
+        if current is None or (bound, event.event_at) < current:
+            earliest[event.event_kind] = (bound, event.event_at)
+    bounds = [bound for bound, _ in earliest.values()]
+    return RevealCalendar(
+        business_update_at=earliest["business_update"][1]
+        if "business_update" in earliest
+        else None,
+        results_at=earliest["results"][1] if "results" in earliest else None,
+        reveal_at=min(bounds) if bounds else None,
+        status="confirmed" if earliest else "expected",
+        earliest_plausible_reveal=epr,
     )

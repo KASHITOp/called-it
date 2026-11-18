@@ -13,8 +13,11 @@ import sqlalchemy as sa
 from sqlalchemy.engine import make_url
 
 from calledit_data.db.engine import make_engine
-from calledit_data.db.schema import PREDICTIONS_SQLITE_TRIGGERS
+from calledit_data.db.schema import PREDICTIONS_SQLITE_TRIGGERS, STORE_SQLITE_TRIGGERS
 from calledit_data.db.settings import Settings
+
+# The ledger triggers (0001) and the point-in-time store triggers (0002).
+REQUIRED_SQLITE_TRIGGERS = PREDICTIONS_SQLITE_TRIGGERS + STORE_SQLITE_TRIGGERS
 
 
 @dataclass
@@ -77,16 +80,14 @@ def _check_triggers(connection: sa.Connection, backend: str, report: DbCheckRepo
         report.ok = False
         return
     rows = connection.execute(
-        sa.text(
-            "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'predictions'"
-        )
+        sa.text("SELECT name FROM sqlite_master WHERE type = 'trigger'")
     ).scalars()
     present = set(rows)
-    missing = [name for name in PREDICTIONS_SQLITE_TRIGGERS if name not in present]
+    missing = [name for name in REQUIRED_SQLITE_TRIGGERS if name not in present]
     if missing:
         report.lines.append(
             "triggers: MISSING " + ", ".join(missing) + " (run: uv run alembic upgrade head)"
         )
         report.ok = False
     else:
-        report.lines.append("triggers: ok (" + ", ".join(PREDICTIONS_SQLITE_TRIGGERS) + ")")
+        report.lines.append("triggers: ok (" + ", ".join(REQUIRED_SQLITE_TRIGGERS) + ")")
