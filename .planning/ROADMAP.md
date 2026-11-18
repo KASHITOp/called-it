@@ -62,14 +62,14 @@ Decimal phases appear between their surrounding integers in numeric order.
      - **Rules frozen first.** The grading rules and the frozen Eternal break treatment are committed, and their SHA-256 is recorded in the ledger before any prediction. The GST 2.0 treatment is deliberately left open here; it is decided in Phase 3 (FEAT-03).
      - **The lock.** On or before 1 Dec 2026, `uv run nowcast predict --quarter Q3FY27` locks one baseline-only prediction per company: same quarter last year x (1 + trailing YoY), with the Eternal treatment applied and a `feature_snapshot` recorded. It appends the lock to `ledger.jsonl`, pushes that commit to GitHub, and saves an OpenTimestamps proof. Within a day the proof upgrades to a Bitcoin attestation that `ots verify` accepts.
      - **Late and backfilled locks refused.** `uv run nowcast predict --quarter Q2FY27` (already revealed) is rejected or recorded VOID, and no command can backfill a lock at a past time.
-**Plans**: 1/13 plans executed
+**Plans**: 2/13 plans executed
 
 Plans:
 **Wave 1**
 - [x] 01-01-PLAN.md — Workspace manifests, .gitattributes, branch main, then the uv install + package-legitimacy gate
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 01-02-PLAN.md — Walking skeleton: hash-chained rules record on SQLite exported to ledger.jsonl; Python/JS golden vectors; ledger integrity
+- [x] 01-02-PLAN.md — Walking skeleton: hash-chained rules record on SQLite exported to ledger.jsonl; Python/JS golden vectors; ledger integrity
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-03-PLAN.md — Fiscal calendar, IST/UTC bounds, config/universe.toml; `nowcast universe` and `nowcast calendar`
@@ -176,7 +176,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Baseline-Only Lock | 1/13 | In Progress | - |
+| 1. First Baseline-Only Lock | 2/13 | In Progress | - |
 | 2. The Record Runs Itself | 0/TBD | Not started | - |
 | 3. Real Signals & Honest Backtest | 0/TBD | Not started | - |
 | 4. Main Model Joins the Ledger | 0/TBD | Not started | - |
