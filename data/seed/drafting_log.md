@@ -55,3 +55,56 @@ determinable from a text layer.
 
 Document URLs are the `source_url` and `business_update_url` columns of the CSV, one pair per
 row (host `api.dmartindia.com`).
+
+## TITAN (Titan Company Ltd), ISIN INE280A01028
+
+robots.txt decision: `https://www.titancompany.in/robots.txt` (fetched 2026-11-19) allows `User-agent: *`
+everywhere except `/core/`, `/profiles/`, admin, search, user-login and similar Drupal system
+paths. The quarterly-results page `/investors/investor-relations/quarterly-results` and the PDFs
+under `/sites/default/files/` are not disallowed, so they were read.
+
+Documents were located from the quarterly-results page (its PDF link list), then each PDF was
+downloaded once and read with `pdftotext -raw` (the layout mode scrambles Titan's column order,
+so raw order was used). One web search (title and excerpt only) was used to find the results page
+URL; no figure comes from the search excerpt.
+
+Revenue basis: the consolidated statement prints "I. Revenue from operations" as a header with two
+lines under it ("Sale of products/ services" and "Other operating revenues") and no subtotal. The
+CSV figure is their sum, in whole crore (the filing is in whole crore, so `.00`). Other income
+(and, in Q2FY27, "Fair value change of put option liability over NCI", 671) is excluded. Each
+sum was checked against the printed Total income: sale + other operating + other income
+(+ the 671 item in Q2FY27) equals Total income in every quarter. This is Revenue from operations
+and not Total income (Pitfall 6). Titan's press-release headline "Total income excludes
+bullion and digi-gold", but the statement's revenue from operations includes them; the CSV keeps
+the statement as reported (D-13). The Group gold-ingot amount per the filing's own note is in each
+row's notes.
+
+| Quarter | Sale of products/services | Other operating revenues | Sum used (crore) | Total income printed | Group gold-ingot note | Results date | Business update date | Table page |
+|---|---|---|---|---|---|---|---|---|
+| Q3FY25 | 17,550 | 190 | 17,740 | 17,868 | 145 | 4 Feb 2025 | 6 Jan 2025 | p12 |
+| Q4FY25 | 13,897 | 1,019 | 14,916 | 15,032 | 983 | 8 May 2025 | 7 Apr 2025 | p17 |
+| Q1FY26 | 14,814 | 1,709 | 16,523 | 16,628 | 1,662 | 7 Aug 2025 | 7 Jul 2025 | p14 |
+| Q2FY26 | 16,461 | 2,264 | 18,725 | 18,837 | 2,188 | 3 Nov 2025 | 7 Oct 2025 | p15 |
+| Q3FY26 | 24,915 | 501 | 25,416 | 25,567 | 469 | 10 Feb 2026 | 6 Jan 2026 | p14 |
+| Q4FY26 | 20,607 | 6,313 | 26,920 | 27,104 | 6,249 | 8 May 2026 | 7 Apr 2026 | p20 |
+| Q1FY27 | 20,787 | 569 | 21,356 | 21,502 | 749 (incl digi-gold) | 7 Aug 2026 | 6 Jul 2026 | p9 |
+| Q2FY27 | 20,337 | 277 | 20,614 | 21,430 | 226 (incl digi-gold) | 5 Nov 2026 | 6 Oct 2026 | p10 |
+
+Comparative cross-checks (the next filing's prior-quarter column agrees): Q3FY25 against the
+Q3FY26 filing (17,550 / 190); Q4FY25 against the Q4FY26 filing (13,897 / 1,019); Q1FY26 against
+the Q1FY27 filing (14,814 / 1,709); Q2FY26 against the Q2FY27 filing (16,461 / 2,264); Q3FY26
+against the Q4FY26 filing (24,915 / 501); Q4FY26 against the Q1FY27 filing (20,607 / 6,313);
+Q1FY27 against the Q2FY27 filing (20,787 / 569). Q2FY27 is the latest quarter.
+
+Row-by-row URLs are the `source_url` (results) and `business_update_url` (Quarterly Update)
+columns. Caveats for the user:
+
+- The Q3FY25 first-report layer of the PDF has a scrambled OCR text layer (labels shifted by one
+  row); the split 17,550 / 190 / 128 was resolved by the Q3FY26 comparative column and by the
+  arithmetic against Total income 17,868. Re-check this one against the printed page first.
+- Results dates are the date printed on the results statement or covering letter. No exchange
+  dissemination time is printed, so the basis is `rule:date_eod_ist`. For Q3FY25 (4 Feb 2025),
+  Q4FY25 (8 May 2025) and Q3FY26 (10 Feb 2026) the downloaded PDF is the results statement
+  without the covering letter, so the date is the statement and auditor's report date.
+- The Quarterly Update letters are standalone growth updates. They carry no consolidated revenue
+  figure; only their letter date is used.

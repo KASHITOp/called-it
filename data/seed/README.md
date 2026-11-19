@@ -175,3 +175,7 @@ them. Until you add and verify them, `nowcast baseline` and the lock refuse that
 - DMART: none awaiting. All 8 quarters (Q3FY25 to Q2FY27) are drafted with `verified = N`.
   Open each `source_url` and check the consolidated "Revenue from operations" before setting `Y`.
   Q3FY26 has no `page_ref` because its tables are images in the PDF.
+- TITAN: none awaiting. All 8 quarters are drafted with `verified = N`. Titan prints no single
+  "Revenue from operations" total, only "Sale of products/services" plus "Other operating
+  revenues"; the CSV figure is their sum (whole crore). Add the two lines yourself when you
+  verify, and check the Q3FY25 split first (see `drafting_log.md`).
