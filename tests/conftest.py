@@ -13,6 +13,7 @@ from alembic.config import Config
 from calledit_data.db.engine import make_engine
 from calledit_data.db.settings import get_settings
 from calledit_data.pit.reader import PointInTimeReader
+from hypothesis import settings as hypothesis_settings
 
 from tests.leakage.leaky_readers import LEAKY_READERS
 
@@ -40,6 +41,12 @@ def _isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     work.mkdir()
     monkeypatch.chdir(work)
 
+
+# Hypothesis profiles. `ci` is derandomised so the meta-test's subprocess runs are reproducible;
+# `dev` keeps hypothesis random so local runs keep exploring. `--hypothesis-profile` overrides.
+hypothesis_settings.register_profile("dev", deadline=None, max_examples=60)
+hypothesis_settings.register_profile("ci", derandomize=True, deadline=None, max_examples=60)
+hypothesis_settings.load_profile("dev")
 
 READER_CHOICES = ("correct", *LEAKY_READERS)
 

@@ -39,24 +39,35 @@ def fresh_store() -> sa.Engine:
     return engine
 
 
+def _ensure_all(conn: sa.Connection, keys: Iterable[str]) -> None:
+    for key in sorted(set(keys)):
+        ensure_series(
+            conn,
+            key,
+            source="seed_csv",
+            metric="revenue_from_operations_consolidated",
+            entity=key.rsplit(".", 1)[-1],
+            unit="inr_crore",
+            frequency="quarterly",
+            collection_mode="manual_seed",
+        )
+
+
 def add_observations(
     engine: sa.Engine, rows: Sequence[ObservationIn], ingested_at: datetime
 ) -> None:
     """Insert ``rows`` (all stamped ``ingested_at``), creating their series first."""
     with engine.begin() as conn:
-        for key in sorted({row.series_key for row in rows}):
-            ticker = key.rsplit(".", 1)[-1]
-            ensure_series(
-                conn,
-                key,
-                source="seed_csv",
-                metric="revenue_from_operations_consolidated",
-                entity=ticker,
-                unit="inr_crore",
-                frequency="quarterly",
-                collection_mode="manual_seed",
-            )
+        _ensure_all(conn, (row.series_key for row in rows))
         insert_observations(conn, rows, ingested_at)
+
+
+def add_stamped(engine: sa.Engine, rows: Sequence[tuple[ObservationIn, datetime]]) -> None:
+    """Insert rows that each carry their own ``ingested_at``, in one transaction."""
+    with engine.begin() as conn:
+        _ensure_all(conn, (row.series_key for row, _ in rows))
+        for row, stamp in rows:
+            insert_observations(conn, [row], stamp)
 
 
 def add_events(engine: sa.Engine, rows: Iterable[RevealEventIn], ingested_at: datetime) -> None:
