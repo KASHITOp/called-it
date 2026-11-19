@@ -118,7 +118,7 @@ def rules(
         typer.echo(result.payload_canonical)
         return
     assert result.appended is not None
-    typer.echo(f"appended rules record seq {result.appended.seq} hash {result.appended.hash}")
+    typer.echo(f"RULES seq={result.appended.seq} hash={result.appended.hash}")
 
 
 def _universe_or_exit(settings: Settings, command: str) -> Universe:
@@ -347,12 +347,11 @@ def predict(
         LockKindOption, typer.Option("--kind", help="Lock kind recorded in the payload.")
     ] = LockKindOption.dispatch,
 ) -> None:
-    """Lock the baseline for every enabled company, now (no past or future lock time exists).
+    """Lock the baseline for every enabled company, now (no other lock time exists).
 
-    Appends one prediction record per company, or a gap record for a company whose seed
-    quarters are missing or unverified. Refuses a quarter that is not live, a company past its
-    earliest plausible reveal, and any run whose rules or universe changed since the latest
-    rules record.
+    Appends a prediction (or a gap) per company. Refuses quarters that are
+    not live, companies past their deadline, and any run whose rules or
+    universe changed since the latest rules record.
     """
     try:
         fq = FiscalQuarter.parse(quarter)

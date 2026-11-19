@@ -52,7 +52,7 @@ from nowcaster.ledger.records import (
     gap_typed_columns,
     prediction_typed_columns,
 )
-from nowcaster.rules import current_run_id, latest_rules_record
+from nowcaster.rules import RulesError, current_run_id, latest_rules_record, stale_fields
 from nowcaster.universe import Company, Universe, UniverseError, load_universe
 
 LockKind = Literal["dispatch", "weekly", "final"]
@@ -190,21 +190,6 @@ def _gap_builder(
     return build
 
 
-def _require_confirmed(universe: Universe, companies: list[Company]) -> None:
-    """Live locks hash ISINs and breaks permanently (T-01-28): refuse unconfirmed ones."""
-    problems: set[str] = set()
-    for company in companies:
-        if not company.isin_confirmed:
-            problems.add(f"{company.ticker}: isin_confirmed is false")
-        for brk in universe.breaks_for(company.ticker):
-            if not brk.confirmed:
-                problems.add(f"break {brk.id} (applies to {company.ticker}): confirmed is false")
-    if problems:
-        raise LockRefused(
-            "live lock refused, unconfirmed universe values: " + "; ".join(sorted(problems))
-        )
-
-
 def _guard(
     engine: sa.Engine, company: Company, quarter: FiscalQuarter, now: datetime
 ) -> str | None:
@@ -257,7 +242,11 @@ def _execute(
     if not companies:
         raise LockRefused("no enabled company in the universe config")
     if live:
-        _require_confirmed(universe, companies)
+        problems = universe.unconfirmed()  # live locks hash ISINs and breaks permanently
+        if problems:
+            raise LockRefused(
+                "live lock refused, unconfirmed universe values: " + "; ".join(problems)
+            )
         if not run_db_check(settings).ok:
             raise LockRefused(
                 "live database self-check failed; run: uv run nowcast db check", EXIT_ENV
@@ -275,6 +264,15 @@ def _execute(
             rules = latest_rules_record(conn)
         if rules is None:
             raise LockRefused("no rules record in the ledger; run: uv run nowcast rules first")
+        try:
+            stale = stale_fields(settings, rules, universe.universe_sha256)
+        except RulesError as exc:
+            raise LockRefused(str(exc)) from None
+        if stale:
+            raise LockRefused(
+                f"{' and '.join(stale)} changed since rules record seq {rules.seq}; "
+                "run: uv run nowcast rules (a new, visible rules record) before locking"
+            )
 
         # Pass 1: the guard, per company, on UTC instants. Nothing is appended yet.
         lockable: list[Company] = []

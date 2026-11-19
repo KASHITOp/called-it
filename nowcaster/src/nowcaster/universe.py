@@ -274,6 +274,23 @@ class Universe(_Model):
         """The companies the lock iterates, in config order."""
         return tuple(c for c in self.companies if c.enabled)
 
+    def unconfirmed(self) -> tuple[str, ...]:
+        """Unconfirmed values that a live write would hash permanently (T-01-28).
+
+        Only enabled companies count: an ISIN with ``isin_confirmed = false``, and every break
+        with ``confirmed = false`` that applies to an enabled company. Sorted, de-duplicated.
+        """
+        problems: set[str] = set()
+        for company in self.enabled():
+            if not company.isin_confirmed:
+                problems.add(f"{company.ticker}: isin_confirmed is false")
+            for brk in self.breaks_for(company.ticker):
+                if not brk.confirmed:
+                    problems.add(
+                        f"break {brk.id} (applies to {company.ticker}): confirmed is false"
+                    )
+        return tuple(sorted(problems))
+
     def company(self, ticker: str) -> Company:
         for company in self.companies:
             if company.ticker == ticker:
