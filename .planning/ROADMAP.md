@@ -62,7 +62,7 @@ Decimal phases appear between their surrounding integers in numeric order.
      - **Rules frozen first.** The grading rules and the frozen Eternal break treatment are committed, and their SHA-256 is recorded in the ledger before any prediction. The GST 2.0 treatment is deliberately left open here; it is decided in Phase 3 (FEAT-03).
      - **The lock.** On or before 1 Dec 2026, `uv run nowcast predict --quarter Q3FY27` locks one baseline-only prediction per company: same quarter last year x (1 + trailing YoY), with the Eternal treatment applied and a `feature_snapshot` recorded. It appends the lock to `ledger.jsonl`, pushes that commit to GitHub, and saves an OpenTimestamps proof. Within a day the proof upgrades to a Bitcoin attestation that `ots verify` accepts.
      - **Late and backfilled locks refused.** `uv run nowcast predict --quarter Q2FY27` (already revealed) is rejected or recorded VOID, and no command can backfill a lock at a past time.
-**Plans**: 8/13 plans executed
+**Plans**: 9/13 plans executed
 
 Plans:
 **Wave 1**
@@ -84,7 +84,7 @@ Plans:
 **Wave 6** *(blocked on Wave 5 completion)*
 - [x] 01-06-PLAN.md — Leakage suite: --reader switch, leaky readers, invariance property, meta-test, splitter, clock/import guards
 - [x] 01-07-PLAN.md — `nowcast predict`: prediction/gap records, lock guard, exit codes, rules freshness
-- [ ] 01-09-PLAN.md — Seed history drafted from company IR documents (verified = N) + Eternal break-range citation
+- [x] 01-09-PLAN.md — Seed history drafted from company IR documents (verified = N) + Eternal break-range citation
 
 **Wave 7** *(blocked on Wave 6 completion)*
 - [ ] 01-10-PLAN.md — PREREGISTRATION.md, then the freeze checkpoint (user verifies seed, confirms Eternal range/ISINs, approves rules)
@@ -176,7 +176,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Baseline-Only Lock | 8/13 | In Progress | - |
+| 1. First Baseline-Only Lock | 9/13 | In Progress | - |
 | 2. The Record Runs Itself | 0/TBD | Not started | - |
 | 3. Real Signals & Honest Backtest | 0/TBD | Not started | - |
 | 4. Main Model Joins the Ledger | 0/TBD | Not started | - |
