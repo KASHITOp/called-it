@@ -30,6 +30,7 @@ _SCRUBBED_ENV = (
     "GITHUB_ACTIONS",
     "GITHUB_REF",
     "GITHUB_RUN_ID",
+    "GITHUB_SHA",
 )
 
 

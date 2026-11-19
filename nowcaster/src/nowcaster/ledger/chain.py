@@ -94,7 +94,9 @@ def _check_payload(payload: dict, typed: TypedColumns, seq: int, expected_prev: 
         raise RecordError(f"payload scheme must be {SCHEME}")
     if payload.get("record_kind") != typed.record_kind:
         raise RecordError("payload record_kind does not equal the typed column")
-    stamp_field = "recorded_at" if typed.record_kind == "rules" else "locked_at"
+    stamp_field = {"rules": "recorded_at", "gap": "attempted_at"}.get(
+        typed.record_kind, "locked_at"
+    )
     if stamp_field in payload and payload[stamp_field] != format_ts(typed.created_at):
         raise RecordError(f"payload {stamp_field} does not equal the typed created_at")
 

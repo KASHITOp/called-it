@@ -7,6 +7,7 @@ rules record, never an edit.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -16,6 +17,7 @@ from pathlib import Path
 
 import sqlalchemy as sa
 from calledit_data.db.engine import make_engine
+from calledit_data.db.schema import predictions
 from calledit_data.db.settings import Settings, require_live_write_context
 
 from nowcaster.ledger.canonical import canonicalize
@@ -35,6 +37,35 @@ class RulesResult:
     dry_run: bool
     payload_canonical: str
     appended: AppendedRecord | None
+
+
+@dataclass(frozen=True)
+class RulesHead:
+    """The latest rules record: what every later lock is bound to (LEDG-07)."""
+
+    seq: int
+    hash: str
+    document_sha256: str
+    universe_sha256: str
+
+
+def latest_rules_record(conn: sa.Connection) -> RulesHead | None:
+    """The newest ``rules`` record in the chain, or ``None`` if none was ever appended."""
+    row = conn.execute(
+        sa.select(predictions.c.seq, predictions.c.hash, predictions.c.payload_canonical)
+        .where(predictions.c.record_kind == "rules")
+        .order_by(predictions.c.seq.desc())
+        .limit(1)
+    ).first()
+    if row is None:
+        return None
+    payload = json.loads(row.payload_canonical)
+    return RulesHead(
+        seq=row.seq,
+        hash=row.hash,
+        document_sha256=payload["document_sha256"],
+        universe_sha256=payload["universe_sha256"],
+    )
 
 
 def _file_sha256(path: Path, label: str) -> str:
@@ -71,7 +102,7 @@ def _git_commit(settings: Settings) -> str:
     return "none"
 
 
-def _run_id() -> str:
+def current_run_id() -> str:
     run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
     return run_id if run_id.isdigit() else "local"
 
@@ -90,7 +121,7 @@ def append_rules_record(
     document_sha = _file_sha256(document_path, "preregistration document")
     universe_sha = _file_sha256(universe_path, "universe config")
     git_commit = _git_commit(settings)
-    run_id = _run_id()
+    run_id = current_run_id()
 
     def build(seq: int, prev_hash: str) -> tuple[dict, TypedColumns]:
         payload = build_rules_payload(

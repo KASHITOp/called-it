@@ -7,8 +7,9 @@ Every failure exits non-zero with a fixed message that never contains the DATABA
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import sqlalchemy as sa
 import typer
@@ -41,9 +42,11 @@ from nowcaster.baseline import (
     window_for,
 )
 from nowcaster.clock import now_utc
+from nowcaster.exit_codes import EXIT_CODE_HELP
 from nowcaster.ledger.canonical import CanonicalError, format_money, format_ts
 from nowcaster.ledger.chain import ForkError, RecordError
 from nowcaster.ledger.export import ExportError, export_ledger
+from nowcaster.lock import LockKind, run_lock
 from nowcaster.rules import RulesError, append_rules_record
 from nowcaster.universe import Break, Company, Universe, UniverseError, load_universe
 
@@ -329,6 +332,44 @@ def baseline(
         if engine is not None:
             engine.dispose()
     typer.echo(f"universe_sha256: {loaded.universe_sha256}")
+
+
+class LockKindOption(StrEnum):
+    dispatch = "dispatch"
+    weekly = "weekly"
+    final = "final"
+
+
+@app.command("predict", epilog=EXIT_CODE_HELP)
+def predict(
+    quarter: Annotated[str, typer.Option("--quarter", help="Fiscal quarter, e.g. Q3FY27.")],
+    kind: Annotated[
+        LockKindOption, typer.Option("--kind", help="Lock kind recorded in the payload.")
+    ] = LockKindOption.dispatch,
+) -> None:
+    """Lock the baseline for every enabled company, now (no past or future lock time exists).
+
+    Appends one prediction record per company, or a gap record for a company whose seed
+    quarters are missing or unverified. Refuses a quarter that is not live, a company past its
+    earliest plausible reveal, and any run whose rules or universe changed since the latest
+    rules record.
+    """
+    try:
+        fq = FiscalQuarter.parse(quarter)
+    except ValueError as exc:
+        typer.echo(f"predict: refused: {exc}", err=True)
+        raise typer.Exit(2) from None
+    settings = _settings_or_exit()
+    now = now_utc()
+    report = run_lock(settings, fq, cast(LockKind, kind.value), now=now)
+    typer.echo(f"quarter: {fq.label}")
+    typer.echo(f"locked_at: {format_ts(now)}")
+    typer.echo(f"kind: {kind.value}")
+    for outcome in report.outcomes:
+        typer.echo(outcome.line())
+    if report.message:
+        typer.echo(f"predict: {report.message}", err=True)
+    raise typer.Exit(report.exit_code)
 
 
 @seed_app.command("load")
