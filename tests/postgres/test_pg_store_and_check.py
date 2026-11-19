@@ -202,7 +202,7 @@ def test_db_check_fails_on_disabled_trigger(check_scratch: ScratchDb) -> None:
     ):
         ok, lines = check_lines(check_scratch)
         assert not ok
-        failing = [line for line in lines if "FAIL" in line]
+        failing = [line for line in lines[:-1] if "FAIL" in line]
         assert len(failing) == 1 and failing[0].startswith(
             "trigger predictions_no_update_delete: FAIL"
         ), lines
