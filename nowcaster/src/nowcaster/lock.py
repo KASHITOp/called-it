@@ -5,7 +5,16 @@ environment variable or config key that sets the lock time: the caller passes ``
 reads the clock exactly once, in ``nowcaster.clock``) and that single instant is both ``as_of``
 and ``locked_at`` for every company in the run.
 
-Per company, in sorted ticker order, each in its own transaction:
+Order of checks (any failure before the first append appends nothing):
+
+1. live only: GitHub Actions on ``refs/heads/main``, a confirmed universe (ISINs and breaks),
+   and the Postgres self-check (``run_db_check``);
+2. a rules record exists (and, from the freshness check, still matches the files on disk);
+3. per company, on UTC instants: the quarter is live (``period_start <= now < earliest
+   plausible reveal``) and no stored reveal event has an early bound ``<= now`` (D-14, D-27);
+4. if every company was refused, stop with ``EXIT_REFUSED``.
+
+Then, per company in sorted ticker order, each in its own transaction:
 
 - a ``BaselineResult`` is appended as a ``prediction`` record (D-12, interval ``none``);
 - a ``BaselineRefusal`` is appended as a ``gap`` record, never imputed (D-08).
@@ -24,15 +33,16 @@ from typing import Literal
 
 import sqlalchemy as sa
 from calledit_data.calendar.fiscal import FiscalQuarter
-from calledit_data.calendar.reveal import earliest_plausible_reveal
+from calledit_data.calendar.reveal import earliest_plausible_reveal, event_early_bound
+from calledit_data.db.check import run_db_check
 from calledit_data.db.engine import make_engine
-from calledit_data.db.settings import Settings
+from calledit_data.db.settings import LiveContextError, Settings, require_live_write_context
 from calledit_data.pit.reader import PointInTimeReader
 from sqlalchemy.engine import make_url
 
 from nowcaster.baseline import BaselineRefusal, BaselineResult, compute_baseline
 from nowcaster.exit_codes import EXIT_ENV, EXIT_OK, EXIT_PARTIAL, EXIT_REFUSED
-from nowcaster.ledger.canonical import CanonicalError
+from nowcaster.ledger.canonical import CanonicalError, format_ts
 from nowcaster.ledger.chain import AppendedRecord, Builder, ForkError, RecordError, append_record
 from nowcaster.ledger.records import (
     LOCK_KINDS,
@@ -180,9 +190,65 @@ def _gap_builder(
     return build
 
 
+def _require_confirmed(universe: Universe, companies: list[Company]) -> None:
+    """Live locks hash ISINs and breaks permanently (T-01-28): refuse unconfirmed ones."""
+    problems: set[str] = set()
+    for company in companies:
+        if not company.isin_confirmed:
+            problems.add(f"{company.ticker}: isin_confirmed is false")
+        for brk in universe.breaks_for(company.ticker):
+            if not brk.confirmed:
+                problems.add(f"break {brk.id} (applies to {company.ticker}): confirmed is false")
+    if problems:
+        raise LockRefused(
+            "live lock refused, unconfirmed universe values: " + "; ".join(sorted(problems))
+        )
+
+
+def _guard(
+    engine: sa.Engine, company: Company, quarter: FiscalQuarter, now: datetime
+) -> str | None:
+    """Why ``company`` may not be locked for ``quarter`` at ``now``, or ``None`` (D-14, D-27).
+
+    All comparisons are on UTC instants:
+
+    - the quarter must be live: ``period_start(Q) <= now < earliest_plausible_reveal`` (Open Q6);
+    - no stored reveal event for (company, quarter) may have an early bound ``<= now``.
+
+    A date-only event is stored at its late bound ``D 23:59:59 IST`` (D-24), so during day D the
+    point-in-time reader at ``now`` does not return it yet, although its early bound
+    ``D 00:00 IST`` has passed. The event check therefore reads through a reader anchored one
+    day later, which sees every event whose late bound is within a day, and then compares the
+    early bound with ``now`` itself. This reader is used only to refuse, never to build features.
+    """
+    epr = earliest_plausible_reveal(quarter, company.reveal_offset_days)
+    if now < quarter.period_start_utc:
+        return f"quarter_not_started: {quarter.label} starts {format_ts(quarter.period_start_utc)}"
+    if now >= epr:
+        return f"past_earliest_plausible_reveal: {format_ts(epr)}"
+    horizon = PointInTimeReader(engine, now + timedelta(days=1), "backtest")
+    for event in horizon.reveal_events(company.ticker, quarter.label):
+        try:
+            bound = event_early_bound(event.event_at, event.availability_basis)
+        except ValueError:
+            return f"invalid_reveal_event: {event.event_kind} cannot be interpreted"
+        if bound <= now:
+            return (
+                f"reveal_event_known: {event.event_kind} early bound "
+                f"{format_ts(bound.replace(microsecond=0))}"
+            )
+    return None
+
+
 def _execute(
     settings: Settings, quarter: FiscalQuarter, kind: str, now: datetime, report: LockReport
 ) -> None:
+    live = settings.calledit_env == "live"
+    if live:
+        try:
+            require_live_write_context(settings)
+        except LiveContextError as exc:
+            raise LockRefused(str(exc)) from None
     try:
         universe: Universe = load_universe(settings.universe_path)
     except UniverseError as exc:
@@ -190,7 +256,13 @@ def _execute(
     companies = sorted(universe.enabled(), key=lambda c: c.ticker)
     if not companies:
         raise LockRefused("no enabled company in the universe config")
-    if _sqlite_store_missing(settings):
+    if live:
+        _require_confirmed(universe, companies)
+        if not run_db_check(settings).ok:
+            raise LockRefused(
+                "live database self-check failed; run: uv run nowcast db check", EXIT_ENV
+            )
+    elif _sqlite_store_missing(settings):
         raise LockRefused(
             "no local database to write to; run: uv run alembic upgrade head", EXIT_ENV
         )
@@ -203,7 +275,23 @@ def _execute(
             rules = latest_rules_record(conn)
         if rules is None:
             raise LockRefused("no rules record in the ledger; run: uv run nowcast rules first")
+
+        # Pass 1: the guard, per company, on UTC instants. Nothing is appended yet.
+        lockable: list[Company] = []
         for company in companies:
+            reason = _guard(engine, company, quarter, now)
+            if reason is None:
+                lockable.append(company)
+                continue
+            report.refused[company.ticker] = reason
+            report.outcomes.append(CompanyOutcome(company.ticker, "refused", reason))
+        if not lockable:
+            raise LockRefused(
+                "every enabled company was refused by the lock guard; nothing appended"
+            )
+
+        # Pass 2: baseline -> prediction or gap, one transaction per company.
+        for company in lockable:
             ticker = company.ticker
             epr = earliest_plausible_reveal(quarter, company.reveal_offset_days)
             reader = PointInTimeReader(engine, now, "live")
@@ -250,6 +338,7 @@ def _execute(
                 )
     finally:
         engine.dispose()
+        report.outcomes.sort(key=lambda o: o.ticker)
 
     if not report.appended:
         report.exit_code = EXIT_REFUSED
