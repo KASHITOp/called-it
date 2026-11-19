@@ -124,7 +124,11 @@ _BAD_EDITS = {
         'start_q = "Q1FY26"',
         'start_q = "q1 fy26"',
     ),
-    "http_source_url": ('id = "eternal-blinkit-inventory"', "https://inc42", "http://inc42"),
+    "http_source_url": (
+        'id = "eternal-blinkit-inventory"',
+        "https://b.zmtcdn.com",
+        "http://b.zmtcdn.com",
+    ),
     "label_with_double_quote": (
         'ticker = "ETERNAL"',
         'labels = ["low confidence: post-break comparables limited"]',

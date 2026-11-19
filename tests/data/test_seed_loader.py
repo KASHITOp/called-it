@@ -406,9 +406,17 @@ def test_dev_allows_example_invalid_hosts() -> None:
 # --- the canonical file -----------------------------------------------------------------
 
 
-def test_canonical_csv_is_header_only_lf() -> None:
+def _canonical_rows() -> list[dict[str, str]]:
+    """The drafted data rows (quoted fields, so parse with csv)."""
+    text = CANONICAL.read_bytes().decode("utf-8")
+    return list(csv.DictReader(io.StringIO(text)))
+
+
+def test_canonical_csv_header_and_lf() -> None:
     data = CANONICAL.read_bytes()
-    assert data == (HEADER + "\n").encode("ascii")
+    assert data.split(b"\n", 1)[0] == HEADER.encode("ascii")
+    assert b"\r" not in data
+    assert data.endswith(b"\n")
     assert len(COLUMNS) == 18
 
 
@@ -417,11 +425,17 @@ def test_canonical_csv_is_header_only_lf() -> None:
 
 
 @pytest.mark.parametrize("env", ["dev", "rehearsal"])
-def test_canonical_csv_dry_runs_with_zero_rows(env: str) -> None:
+def test_canonical_csv_dry_runs_cleanly(env: str) -> None:
     path = _canonical_copy(source=CANONICAL)
     report = load_seed(None, path, RULES, settings_for(env), now=NOW, dry_run=True)
-    assert report.errors == ()
-    assert report.rows_seen == 0
+    rows = _canonical_rows()
+    assert report.rows_seen == len(rows)
+    if env == "dev":
+        assert report.errors == ()
+    else:
+        # Rehearsal forces verified = Y (D-22): the only errors allowed are unverified rows.
+        assert {e.column for e in report.errors} <= {"verified"}
+        assert len(report.errors) == len([r for r in rows if r["verified"] != "Y"])
 
 
 def test_cli_dry_run_on_canonical_csv(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -429,7 +443,7 @@ def test_cli_dry_run_on_canonical_csv(monkeypatch: pytest.MonkeyPatch) -> None:
     _canonical_copy(source=CANONICAL)
     result = CliRunner().invoke(app, ["seed", "load", "--dry-run"])
     assert result.exit_code == 0, result.output
-    assert "0 rows seen" in result.output
+    assert f"{len(_canonical_rows())} rows seen" in result.output
 
 
 def test_cli_lists_every_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
