@@ -179,3 +179,8 @@ them. Until you add and verify them, `nowcast baseline` and the lock refuse that
   "Revenue from operations" total, only "Sale of products/services" plus "Other operating
   revenues"; the CSV figure is their sum (whole crore). Add the two lines yourself when you
   verify, and check the Q3FY25 split first (see `drafting_log.md`).
+- ETERNAL: none awaiting. All 8 quarters are drafted with `verified = N`. The Annexure D tables are
+  images in the shareholder-letter PDFs, so open each `source_url` and read "I. Revenue from
+  operations" off the page (no `page_ref` recorded). The `eternal-blinkit-inventory` break range in
+  `config/universe.toml` (Q1FY26 to Q3FY26) is a proposal with primary citations and stays
+  `confirmed = false` until you confirm it.
