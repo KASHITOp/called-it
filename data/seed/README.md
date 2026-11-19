@@ -165,3 +165,13 @@ every `N` row as an error locally, the way rehearsal and live do.
 The file is committed with `-text` (`.gitattributes`), so keep LF line endings. The loader
 accepts a UTF-8 BOM or CRLF from a spreadsheet export, but commit the file as plain UTF-8 with
 LF.
+
+## Rows awaiting the user
+
+Claude could not source these from a company IR document in this session, so there is no row for
+them. Until you add and verify them, `nowcast baseline` and the lock refuse that company
+(`missing_seed_quarter`). Provenance for every drafted row is in `drafting_log.md`.
+
+- DMART: none awaiting. All 8 quarters (Q3FY25 to Q2FY27) are drafted with `verified = N`.
+  Open each `source_url` and check the consolidated "Revenue from operations" before setting `Y`.
+  Q3FY26 has no `page_ref` because its tables are images in the PDF.
