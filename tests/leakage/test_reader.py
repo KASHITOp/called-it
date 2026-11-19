@@ -1,14 +1,17 @@
 """PIT-03 and the strict-cutoff half of LEAK-03: ``PointInTimeReader`` only returns rows
 knowable at ``as_of``.
 
-Plan 01-06 re-parametrises this file over a ``reader_cls`` fixture (the deliberately leaky
-readers must all fail it), so every reader is built through ``make_reader``.
+Plan 01-06 re-parametrises this file over the ``reader_cls`` fixture: ``--reader=<variant>``
+swaps in a deliberately leaky reader, which must fail this file, so every reader is built
+through the ``make_reader`` factory fixture. The two post-condition tests monkeypatch the
+production reader itself and deliberately use ``PointInTimeReader`` directly.
 
 All values are synthetic test data.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -43,8 +46,17 @@ BASE = ObservationIn(
 )
 
 
-def make_reader(engine: sa.Engine, as_of: datetime, mode: str = "backtest") -> PointInTimeReader:
-    return PointInTimeReader(engine, as_of, mode)  # type: ignore[arg-type]
+ReaderFactory = Callable[..., PointInTimeReader]
+
+
+@pytest.fixture
+def make_reader(reader_cls: type[PointInTimeReader]) -> ReaderFactory:
+    """Build ``reader_cls(engine, as_of, mode)``: production by default, leaky via --reader."""
+
+    def build(engine: sa.Engine, as_of: datetime, mode: str = "backtest") -> PointInTimeReader:
+        return reader_cls(engine, as_of, mode)  # type: ignore[arg-type]
+
+    return build
 
 
 def store(engine: sa.Engine, rows: list[ObservationIn], ingested_at: datetime = INGESTED) -> None:
@@ -62,19 +74,25 @@ def at(when: datetime, **changes: object) -> ObservationIn:
 # --- the strict cutoff --------------------------------------------------------------------
 
 
-def test_row_at_exact_cutoff_is_excluded(migrated_sqlite: sa.Engine) -> None:
+def test_row_at_exact_cutoff_is_excluded(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     store(migrated_sqlite, [at(AS_OF)])
     assert make_reader(migrated_sqlite, AS_OF).series(KEY) == ()
 
 
-def test_row_one_microsecond_before_cutoff_is_included(migrated_sqlite: sa.Engine) -> None:
+def test_row_one_microsecond_before_cutoff_is_included(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     store(migrated_sqlite, [at(AS_OF - ONE_US)])
     rows = make_reader(migrated_sqlite, AS_OF).series(KEY)
     assert len(rows) == 1
     assert rows[0].available_at == AS_OF - ONE_US
 
 
-def test_ist_filing_after_midnight_boundary(migrated_sqlite: sa.Engine) -> None:
+def test_ist_filing_after_midnight_boundary(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     filing = datetime(2027, 1, 2, 0, 15, tzinfo=IST)
     assert filing.astimezone(UTC) == datetime(2027, 1, 1, 18, 45, tzinfo=UTC)
     store(migrated_sqlite, [at(filing, period_date=date(2026, 12, 31))], ingested_at=filing)
@@ -93,24 +111,30 @@ def test_ist_filing_after_midnight_boundary(migrated_sqlite: sa.Engine) -> None:
     ],
     ids=["naive", "ist-offset", "negative-offset", "string"],
 )
-def test_as_of_must_be_aware_utc(migrated_sqlite: sa.Engine, as_of: object) -> None:
+def test_as_of_must_be_aware_utc(
+    migrated_sqlite: sa.Engine, as_of: object, make_reader: ReaderFactory
+) -> None:
     with pytest.raises((TypeError, ValueError)):
         make_reader(migrated_sqlite, as_of)  # type: ignore[arg-type]
 
 
-def test_unknown_mode_is_refused(migrated_sqlite: sa.Engine) -> None:
+def test_unknown_mode_is_refused(migrated_sqlite: sa.Engine, make_reader: ReaderFactory) -> None:
     with pytest.raises(ValueError, match="mode"):
         make_reader(migrated_sqlite, AS_OF, "lookahead")
 
 
-def test_empty_store_returns_empty_tuple(migrated_sqlite: sa.Engine) -> None:
+def test_empty_store_returns_empty_tuple(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     reader = make_reader(migrated_sqlite, AS_OF)
     assert reader.series(KEY) == ()
     assert reader.series("rev.consolidated.NOBODY") == ()
     assert reader.reveal_events("DMART", "Q2FY27") == ()
 
 
-def test_series_with_nothing_before_as_of_returns_empty_tuple(migrated_sqlite: sa.Engine) -> None:
+def test_series_with_nothing_before_as_of_returns_empty_tuple(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     store(migrated_sqlite, [at(AS_OF + timedelta(days=1))])
     assert make_reader(migrated_sqlite, AS_OF).series(KEY) == ()
 
@@ -118,7 +142,9 @@ def test_series_with_nothing_before_as_of_returns_empty_tuple(migrated_sqlite: s
 # --- vintages (D-05) ----------------------------------------------------------------------
 
 
-def test_later_vintage_before_as_of_wins(migrated_sqlite: sa.Engine) -> None:
+def test_later_vintage_before_as_of_wins(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     v1 = at(AS_OF - timedelta(days=30))
     v2 = at(AS_OF - timedelta(days=5), value=Decimal("10750.00"), vintage="restated")
     store(migrated_sqlite, [v2, v1])
@@ -127,7 +153,9 @@ def test_later_vintage_before_as_of_wins(migrated_sqlite: sa.Engine) -> None:
     assert rows[0].vintage == "restated"
 
 
-def test_vintage_after_as_of_is_ignored(migrated_sqlite: sa.Engine) -> None:
+def test_vintage_after_as_of_is_ignored(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     v1 = at(AS_OF - timedelta(days=30))
     v2 = at(AS_OF + timedelta(days=5), value=Decimal("10750.00"), vintage="restated")
     store(migrated_sqlite, [v1, v2])
@@ -136,7 +164,9 @@ def test_vintage_after_as_of_is_ignored(migrated_sqlite: sa.Engine) -> None:
     assert rows[0].vintage == "first_reported"
 
 
-def test_exact_ties_break_by_content_hash_deterministically(migrated_sqlite: sa.Engine) -> None:
+def test_exact_ties_break_by_content_hash_deterministically(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     when = AS_OF - timedelta(days=3)
     tied = [
         at(when, value=Decimal("10701.00"), source_ref="https://example.invalid/a"),
@@ -153,7 +183,9 @@ def test_exact_ties_break_by_content_hash_deterministically(migrated_sqlite: sa.
     assert reads[0][0].content_hash == observation_content_hash(expected)
 
 
-def test_output_is_sorted_by_period_and_stable(migrated_sqlite: sa.Engine) -> None:
+def test_output_is_sorted_by_period_and_stable(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     periods = [date(2026, 6, 30), date(2025, 12, 31), date(2026, 9, 30), date(2026, 3, 31)]
     store(
         migrated_sqlite,
@@ -167,13 +199,17 @@ def test_output_is_sorted_by_period_and_stable(migrated_sqlite: sa.Engine) -> No
 # --- live mode ----------------------------------------------------------------------------
 
 
-def test_live_mode_excludes_rows_ingested_after_as_of(migrated_sqlite: sa.Engine) -> None:
+def test_live_mode_excludes_rows_ingested_after_as_of(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     store(migrated_sqlite, [at(AS_OF - timedelta(days=30))], ingested_at=AS_OF + ONE_US)
     assert make_reader(migrated_sqlite, AS_OF, "live").series(KEY) == ()
     assert len(make_reader(migrated_sqlite, AS_OF, "backtest").series(KEY)) == 1
 
 
-def test_live_mode_includes_rows_ingested_exactly_at_as_of(migrated_sqlite: sa.Engine) -> None:
+def test_live_mode_includes_rows_ingested_exactly_at_as_of(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     store(migrated_sqlite, [at(AS_OF - timedelta(days=30))], ingested_at=AS_OF)
     assert len(make_reader(migrated_sqlite, AS_OF, "live").series(KEY)) == 1
 
@@ -192,7 +228,9 @@ def _event(when: datetime, kind: str = "results") -> RevealEventIn:
     )
 
 
-def test_reveal_events_use_the_same_strict_cutoff(migrated_sqlite: sa.Engine) -> None:
+def test_reveal_events_use_the_same_strict_cutoff(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
     with migrated_sqlite.begin() as conn:
         insert_reveal_events(
             conn,
@@ -215,7 +253,7 @@ def test_postcondition_catches_a_leaky_filter(
     with migrated_sqlite.begin() as conn:
         insert_reveal_events(conn, [_event(AS_OF)], INGESTED)
     monkeypatch.setattr(PointInTimeReader, "_row_filter", lambda self, table: sa.true())
-    reader = make_reader(migrated_sqlite, AS_OF)
+    reader = PointInTimeReader(migrated_sqlite, AS_OF, "backtest")
     with pytest.raises(LeakageError, match=observation_content_hash(leaked)):
         reader.series(KEY)
     with pytest.raises(LeakageError):
@@ -232,7 +270,7 @@ def test_postcondition_catches_live_ingestion_leak(
         lambda self, table: table.c.available_at < self.as_of,
     )
     with pytest.raises(LeakageError):
-        make_reader(migrated_sqlite, AS_OF, "live").series(KEY)
+        PointInTimeReader(migrated_sqlite, AS_OF, "live").series(KEY)
 
 
 def test_leakage_error_is_an_assertion_error() -> None:

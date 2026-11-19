@@ -12,6 +12,9 @@ from alembic import command
 from alembic.config import Config
 from calledit_data.db.engine import make_engine
 from calledit_data.db.settings import get_settings
+from calledit_data.pit.reader import PointInTimeReader
+
+from tests.leakage.leaky_readers import LEAKY_READERS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
@@ -36,6 +39,32 @@ def _isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     work = tmp_path / "cwd"
     work.mkdir()
     monkeypatch.chdir(work)
+
+
+READER_CHOICES = ("correct", *LEAKY_READERS)
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--reader",
+        action="store",
+        default="correct",
+        choices=READER_CHOICES,
+        help=(
+            "Which PointInTimeReader the leakage suite exercises. 'correct' is the production "
+            "reader; the leaky-* variants are deliberately wrong and must turn the suite red "
+            "(tests/meta proves it)."
+        ),
+    )
+
+
+@pytest.fixture(scope="session")
+def reader_cls(request: pytest.FixtureRequest) -> type[PointInTimeReader]:
+    """The reader class under test: production by default, a leaky subclass via --reader."""
+    name = request.config.getoption("--reader")
+    if name == "correct":
+        return PointInTimeReader
+    return LEAKY_READERS[name]
 
 
 def alembic_config() -> Config:
