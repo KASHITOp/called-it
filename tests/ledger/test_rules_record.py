@@ -286,7 +286,13 @@ def test_live_rules_refuses_an_unconfirmed_universe(
 ) -> None:
     _live_actions(monkeypatch)
     path = repo / "config" / "universe.toml"
-    path.write_bytes(UNIVERSE_SOURCE.read_bytes())  # the real file still has unconfirmed values
+    unconfirmed = UNIVERSE_SOURCE.read_bytes().replace(
+        b'isin = "INE758T01015"\nisin_confirmed = true',
+        b'isin = "INE758T01015"\nisin_confirmed = false',
+        1,
+    )
+    assert b"isin_confirmed = false" in unconfirmed
+    path.write_bytes(unconfirmed)  # the shipped file is fully confirmed, so un-confirm one ISIN
     _git(repo, "add", "config/universe.toml")
     _git(repo, "commit", "-q", "-m", "unconfirmed")
     with pytest.raises(RulesError, match="isin_confirmed is false"):

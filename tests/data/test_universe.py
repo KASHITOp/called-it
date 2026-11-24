@@ -46,7 +46,8 @@ def test_repo_config_values() -> None:
     assert offsets == {"DMART": 1, "ETERNAL": 7, "TITAN": 2}
     dmart, eternal, titan = (universe.company(t) for t in ("DMART", "ETERNAL", "TITAN"))
     assert dmart.isin == "INE192R01011" and dmart.isin_confirmed is True
-    assert eternal.isin_confirmed is False and titan.isin_confirmed is False
+    assert eternal.isin == "INE758T01015" and eternal.isin_confirmed is True
+    assert titan.isin == "INE280A01028" and titan.isin_confirmed is True
     assert eternal.has_business_update is False
     assert dmart.has_business_update is True and titan.has_business_update is True
     assert eternal.labels == ("low confidence: post-break comparables limited",)
@@ -233,8 +234,8 @@ def test_cli_universe_lists_everything(
         "break gst2.0",
         "2025-09-22",
         "Q1FY26",
-        "confirmed: false",
-        "isin_confirmed: false",
+        "confirmed: true",
+        "isin_confirmed: true",
         "ZOMATO until 2025-04-08",
         "universe_sha256: " + hashlib.sha256(UNIVERSE_PATH.read_bytes()).hexdigest(),
     ):

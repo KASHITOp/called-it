@@ -327,6 +327,14 @@ def _live_universe(lock_env: LockEnv, *, isins: bool, breaks: bool, disable: str
     text = lock_env.universe.read_text(encoding="utf-8")
     if isins:
         text = re.sub(r"(?m)^isin_confirmed = false$", "isin_confirmed = true", text)
+    else:
+        # the shipped ISINs are all confirmed now, so un-confirm one explicitly
+        text = text.replace(
+            'isin = "INE758T01015"\nisin_confirmed = true',
+            'isin = "INE758T01015"\nisin_confirmed = false',
+            1,
+        )
+        assert 'isin = "INE758T01015"\nisin_confirmed = false' in text
     if breaks:
         text = re.sub(r"(?m)^confirmed = false$", "confirmed = true", text)
     else:

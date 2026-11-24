@@ -107,16 +107,23 @@ exactly these four. They are checked in this order of precedence per company:
 
 ## 6. Eternal treatment (the Blinkit break)
 
-- From Q1 FY26 Eternal moved its quick-commerce business from a marketplace model to owning
-  inventory, which changes how revenue is reported. The preregistered break range is
-  `start_q` = Q2 FY26 to `end_q` = Q3 FY26, as set in config/universe.toml
-  (break id `eternal-blinkit-inventory`, confirmed by the user on 24 Nov 2026).
-- Citations (Eternal shareholder letters, https://b.zmtcdn.com/investor-relations/): the Q1 FY26
-  letter (21 Jul 2025) says about 3% of NOV was on own inventory and the transition would run
-  over the next 2-3 quarters, so Q1 FY26 is the last pre-break quarter. The Q2 FY26 letter
-  (16 Oct 2025) says about 80% of NOV was on own inventory in Q2 FY26, heading to about 90%.
-  The Q3 FY26 letter (21 Jan 2026) says about 90%, not expected to increase meaningfully from
-  there.
+- Eternal began moving its quick-commerce business from a marketplace model to owning
+  inventory in Q1 FY26, when only a small share of NOV was on own inventory. This changes how
+  revenue is reported. The preregistered break range starts at Q2 FY26, when about 80% of NOV
+  was on own inventory: `start_q` = Q2 FY26 to `end_q` = Q3 FY26, as set in
+  config/universe.toml (break id `eternal-blinkit-inventory`, confirmed by the user on
+  24 Nov 2026).
+- Citations (Eternal shareholder letters, https://b.zmtcdn.com/investor-relations/), figures
+  re-read from the letters on 24 Nov 2026: the Q1 FY26 letter says that in Q1 FY26 about 3% of
+  NOV was already on own inventory, and that the move from a marketplace model to inventory
+  ownership would be gradual over the next 2-3 quarters, so
+  Q1 FY26 is the last pre-break quarter. The Q2 FY26 letter says about 80% of NOV in Q2 FY26 was on the own-inventory model.
+  The Q3 FY26 letter (21 Jan 2026) says about 90% of NOV in Q3 FY26 was on own inventory and
+  that this number is not expected to increase meaningfully from there.
+- Disclosed limit: Q2 FY26 was only about 80% on own inventory, against about 90% in Q3 FY26
+  and later. The pair (Q2 FY27, Q2 FY26) therefore likely overstates like-for-like growth,
+  and the Eternal baseline may overshoot. This is a disclosed limit, not a claim of
+  comparability.
 - Classification of a quarter against a range: "pre" if before `start_q`, "in" if from `start_q`
   to `end_q` inclusive, "post" if after `end_q`.
 - The break method is used when any window quarter is "in" a range that applies to the company,
