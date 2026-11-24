@@ -28,7 +28,7 @@ from nowcaster.lock import run_lock
 
 from nowcaster import lock as lock_module
 from tests.leakage.store_helpers import add_events
-from tests.ledger.lock_helpers import FIXTURE, LOCK_TIME, SEED_TIME, LockEnv
+from tests.ledger.lock_helpers import FIXTURE, LOCK_TIME, RULES_TIME, SEED_TIME, LockEnv
 
 DMART_EPR = datetime(2026, 12, 31, 18, 30, 0, tzinfo=UTC)  # 2027-01-01 00:00 IST
 TITAN_EPR = datetime(2027, 1, 1, 18, 30, 0, tzinfo=UTC)  # 2027-01-02 00:00 IST
@@ -58,6 +58,29 @@ def test_q2fy27_refused_and_nothing_appended(lock_env: LockEnv) -> None:
     assert lock_env.count() == 1  # only the rules record
 
 
+def test_a_lock_earlier_than_the_rules_record_is_refused(lock_env: LockEnv) -> None:
+    _ready(lock_env)  # the rules record is created at RULES_TIME
+    result = lock_env.predict("Q3FY27", RULES_TIME - timedelta(minutes=1))
+    assert result.exit_code == EXIT_REFUSED, result.output
+    assert "lock_before_rules" in result.output
+    assert lock_env.count() == 1  # only the rules record
+
+
+def test_a_repeated_lock_appends_later_records_and_never_edits_earlier_ones(
+    lock_env: LockEnv,
+) -> None:
+    _ready(lock_env)
+    first = lock_env.predict("Q3FY27", LOCK_TIME)
+    assert first.exit_code in (EXIT_OK, EXIT_PARTIAL), first.output
+    before = [(r["seq"], r["hash"], r["payload_canonical"]) for r in lock_env.rows()]
+    second = lock_env.predict("Q3FY27", LOCK_TIME + timedelta(days=1))
+    assert second.exit_code == first.exit_code, second.output
+    after = lock_env.rows()
+    assert len(after) == 2 * len(before) - 1  # the rules record is not repeated
+    assert [(r["seq"], r["hash"], r["payload_canonical"]) for r in after[: len(before)]] == before
+    assert [r["seq"] for r in after] == list(range(len(after)))
+
+
 def test_quarter_that_has_not_started_is_refused(lock_env: LockEnv) -> None:
     _ready(lock_env)
     result = lock_env.predict("Q4FY27")
@@ -67,7 +90,9 @@ def test_quarter_that_has_not_started_is_refused(lock_env: LockEnv) -> None:
 
 
 def test_the_live_quarter_starts_at_00_00_ist_on_its_first_day(lock_env: LockEnv) -> None:
-    _ready(lock_env)
+    lock_env.load_seed()  # ingested on 28 Nov, i.e. after the instants probed below
+    # The rules record must predate the probed instants, or lock_before_rules fires first.
+    assert lock_env.rules(datetime(2026, 9, 1, 0, 0, 0, tzinfo=UTC)).exit_code == 0
     start = datetime(2026, 9, 30, 18, 30, 0, tzinfo=UTC)  # 2026-10-01 00:00 IST
     before = lock_env.predict("Q3FY27", start - timedelta(seconds=1))
     assert before.exit_code == EXIT_REFUSED, before.output

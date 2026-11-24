@@ -19,7 +19,7 @@ from decimal import Decimal
 import pytest
 import sqlalchemy as sa
 from calledit_data.calendar.tz import IST
-from calledit_data.pit.reader import LeakageError, PointInTimeReader
+from calledit_data.pit.reader import LeakageError, PointInTimeReader, TiedVintageError
 from calledit_data.store.writer import (
     ObservationIn,
     RevealEventIn,
@@ -164,7 +164,7 @@ def test_vintage_after_as_of_is_ignored(
     assert rows[0].vintage == "first_reported"
 
 
-def test_exact_ties_break_by_content_hash_deterministically(
+def test_tied_available_at_with_different_values_is_refused_never_picked(
     migrated_sqlite: sa.Engine, make_reader: ReaderFactory
 ) -> None:
     when = AS_OF - timedelta(days=3)
@@ -173,14 +173,59 @@ def test_exact_ties_break_by_content_hash_deterministically(
         at(when, value=Decimal("10702.00"), source_ref="https://example.invalid/b"),
         at(when, value=Decimal("10703.00"), source_ref="https://example.invalid/c"),
     ]
-    expected = max(tied, key=observation_content_hash)
-    # Insert in an order where the winner is neither first nor last by obs_id.
-    store(migrated_sqlite, sorted(tied, key=observation_content_hash)[::2][::-1])
     store(migrated_sqlite, tied)
+    for _ in range(3):  # same answer however often it is asked, whatever the insertion order
+        with pytest.raises(TiedVintageError) as excinfo:
+            make_reader(migrated_sqlite, AS_OF).series(KEY)
+        assert excinfo.value.series_key == KEY
+        assert excinfo.value.period_dates == (BASE.period_date,)
+
+
+def test_a_tie_in_backtest_mode_is_refused_too(migrated_sqlite: sa.Engine) -> None:
+    when = AS_OF - timedelta(days=3)
+    store(
+        migrated_sqlite,
+        [
+            at(when, value=Decimal("10701.00"), source_ref="https://example.invalid/a"),
+            at(when, value=Decimal("10702.00"), source_ref="https://example.invalid/b"),
+        ],
+    )
+    reader = PointInTimeReader(migrated_sqlite, AS_OF, "backtest")
+    with pytest.raises(TiedVintageError):
+        reader.series(KEY)
+
+
+def test_a_tie_at_an_older_available_at_does_not_matter(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
+    old = AS_OF - timedelta(days=30)
+    newest = AS_OF - timedelta(days=3)
+    store(
+        migrated_sqlite,
+        [
+            at(old, value=Decimal("10701.00"), source_ref="https://example.invalid/a"),
+            at(old, value=Decimal("10702.00"), source_ref="https://example.invalid/b"),
+            at(newest, value=Decimal("10750.00"), vintage="restated"),
+        ],
+    )
+    rows = make_reader(migrated_sqlite, AS_OF).series(KEY)
+    assert [r.value for r in rows] == [Decimal("10750.000000")]
+
+
+def test_equal_values_at_the_same_available_at_are_not_a_conflict(
+    migrated_sqlite: sa.Engine, make_reader: ReaderFactory
+) -> None:
+    when = AS_OF - timedelta(days=3)
+    store(
+        migrated_sqlite,
+        [
+            at(when, value=Decimal("10701.00"), source_ref="https://example.invalid/a"),
+            at(when, value=Decimal("10701.00"), source_ref="https://example.invalid/b"),
+        ],
+    )
     reads = [make_reader(migrated_sqlite, AS_OF).series(KEY) for _ in range(3)]
     assert reads[0] == reads[1] == reads[2]
-    assert len(reads[0]) == 1
-    assert reads[0][0].content_hash == observation_content_hash(expected)
+    assert [r.value for r in reads[0]] == [Decimal("10701.000000")]
 
 
 def test_output_is_sorted_by_period_and_stable(

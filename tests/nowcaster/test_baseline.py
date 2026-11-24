@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 import sqlalchemy as sa
 from calledit_data.calendar.fiscal import FiscalQuarter
-from calledit_data.pit.reader import Observation, PointInTimeReader
+from calledit_data.pit.reader import Observation, PointInTimeReader, TiedVintageError
 from calledit_data.store.writer import ObservationIn, ensure_series, insert_observations
 from hypothesis import given
 from hypothesis import strategies as st
@@ -241,6 +241,18 @@ def test_empty_series_refuses_all_eight() -> None:
     outcome = compute_baseline(UNIVERSE.company("DMART"), TARGET, FakeReader([]), [])
     assert isinstance(outcome, BaselineRefusal)
     assert outcome.missing_quarters == tuple(q.label for q in _window())
+
+
+class TiedReader(FakeReader):
+    """A reader whose store holds two different values at the latest available_at (a tie)."""
+
+    def series(self, series_key: str) -> tuple[Observation, ...]:
+        raise TiedVintageError(series_key, (FiscalQuarter.parse("Q1FY26").end,))
+
+
+def test_tied_available_at_is_refused_with_its_own_reason() -> None:
+    outcome = compute_baseline(UNIVERSE.company("DMART"), TARGET, TiedReader([]), [])
+    assert outcome == BaselineRefusal("DMART", "Q3FY27", AS_OF, "tied_available_at", ("Q1FY26",))
 
 
 def test_zero_base_sum_is_refused_not_raised() -> None:

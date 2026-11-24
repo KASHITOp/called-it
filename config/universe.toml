@@ -82,5 +82,5 @@ kind = "date"
 applies_to = ["*"]
 effective = 2025-09-22
 source_url = "https://www.business-standard.com/amp/economy/news/tax-turbulence-revenues-take-a-hit-in-first-full-month-of-gst-2-0-125120101323_1.html"
-source_note = "GST 2.0 rate rationalisation effective 22 Sep 2025; treatment deferred to FEAT-03 (D-07)"
+source_note = "GST 2.0 rate rationalisation effective 22 Sep 2025; flagged, not adjusted; treatment decided in Phase 3 and recorded as a dated amendment (D-07)"
 confirmed = true

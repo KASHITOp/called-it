@@ -56,6 +56,13 @@ Not in this phase: GST/Trends signals, the GST 2.0 treatment (FEAT-03, Phase 3),
 - **D-28:** **Default branch is `main`.** Rename local `master` to `main` before the first push to `KASHITOp/called-it`. All witness commit URLs use `main`. — **Reversibility:** one-way once witness URLs are published.
 - **D-29:** **Postgres test target: both.** A `.github/workflows/ci-postgres.yml` workflow runs the `-m postgres` suite against a `postgres:17` service container. Optionally, it also runs locally against a guarded Supabase scratch schema via `TEST_DATABASE_URL`. The guard refuses the live `calledit` schema.
 
+### Decisions on the open edges (user, 2026-11-24, before Plan 01-10)
+- **D-30:** **Tied `available_at` vintages are refused.** Two vintages of one period that share the latest `available_at` with different values make the baseline refuse with reason `tied_available_at`; nothing picks one, in every mode (the reader raises `TiedVintageError`). Equal values are not a conflict. Reason codes are now four: `missing_seed_quarter`, `unverified_seed_quarter`, `invalid_base_sum`, `tied_available_at`. `invalid_base_sum` stays, as implemented: the growth denominator is zero or negative. — **Reversibility:** one-way once preregistered.
+- **D-31:** **Repeated predict.** A repeated `predict` for the same ticker and quarter is allowed and appends a new, later ledger entry. The official call is the last valid lock. Earlier entries are never overwritten or edited. — **Reversibility:** one-way once preregistered.
+- **D-32:** **GST freeze wording.** Freeze only: "GST 2.0 (22 Sep 2025) is flagged, not adjusted; treatment decided in Phase 3 and recorded as a dated amendment." The per-company `gst_states` lists stay provisional and are outside the freeze. — **Reversibility:** a later change is a dated amendment, not an edit.
+- **D-33:** **Early locks are refused.** A lock before the rules exist (no rules record) or before they were recorded (`lock_before_rules`), or before the quarter's period start (`quarter_not_started`), is refused. — **Reversibility:** one-way once preregistered.
+- **D-34:** **ISIN confirmation is the user's call.** `isin_confirmed` for ETERNAL and TITAN is set to `true` only after the user says so. Until then live locks are refused.
+
 ### Claude's Discretion
 - Config file format and name (research suggests `universe.toml` via `tomllib`) and the import package name (`calledit_data`, not `data`).
 - Ledger file path: `ledger/ledger.jsonl`, next to `ledger/proofs/`. Phase 5 export can copy or serve it for the web.

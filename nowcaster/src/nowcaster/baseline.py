@@ -20,6 +20,7 @@ Rules (user-settled, D-04..D-08; frozen into PREREGISTRATION.md and hashed at se
   arithmetic (D-07).
 - Eternal's result always carries the label ``ETERNAL_LABEL`` (D-06).
 - A non-positive denominator is refused (``invalid_base_sum``), never divided.
+- Tied ``available_at`` vintages with different values are refused (``tied_available_at``).
 
 This module reads data only through ``PointInTimeReader`` (no SQL, no engine) and never reads
 the clock: the instant is ``reader.as_of``.
@@ -34,7 +35,7 @@ from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from typing import Any
 
 from calledit_data.calendar.fiscal import FiscalQuarter
-from calledit_data.pit.reader import Observation, PointInTimeReader
+from calledit_data.pit.reader import Observation, PointInTimeReader, TiedVintageError
 
 from nowcaster.ledger.canonical import (
     canonicalize,
@@ -60,6 +61,7 @@ PAIR_LEAST_STRADDLING = "least_straddling"
 REASON_MISSING = "missing_seed_quarter"
 REASON_UNVERIFIED = "unverified_seed_quarter"
 REASON_INVALID_BASE = "invalid_base_sum"
+REASON_TIED = "tied_available_at"
 
 VERIFIED_SOURCE_KIND = "seed_csv"
 UNVERIFIED_SOURCE_KIND = "seed_csv_unverified"
@@ -185,7 +187,22 @@ def compute_baseline(
     window = window_for(quarter)
     labels_of_window = tuple(q.label for q in window)
 
-    by_period = {obs.period_date: obs for obs in reader.series(f"rev.consolidated.{ticker}")}
+    try:
+        by_period = {obs.period_date: obs for obs in reader.series(f"rev.consolidated.{ticker}")}
+    except TiedVintageError as tie:
+        # Two vintages share the latest available_at with different values: refuse, never pick.
+        return BaselineRefusal(
+            ticker=ticker,
+            fiscal_quarter=quarter.label,
+            as_of=as_of,
+            reason_code=REASON_TIED,
+            missing_quarters=tuple(
+                label
+                for q, label in zip(window, labels_of_window, strict=True)
+                if q.end in tie.period_dates
+            )
+            or tuple(d.isoformat() for d in tie.period_dates),
+        )
     missing: list[str] = []
     unverified: list[str] = []
     usable: dict[FiscalQuarter, Observation] = {}

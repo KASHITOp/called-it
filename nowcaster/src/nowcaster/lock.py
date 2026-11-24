@@ -9,7 +9,8 @@ Order of checks (any failure before the first append appends nothing):
 
 1. live only: GitHub Actions on ``refs/heads/main``, a confirmed universe (ISINs and breaks),
    and the Postgres self-check (``run_db_check``);
-2. a rules record exists (and, from the freshness check, still matches the files on disk);
+2. a rules record exists, still matches the files on disk, and is not later than ``now``
+   (``lock_before_rules``; decision of 24 Nov 2026);
 3. per company, on UTC instants: the quarter is live (``period_start <= now < earliest
    plausible reveal``) and no stored reveal event has an early bound ``<= now`` (D-14, D-27);
 4. if every company was refused, stop with ``EXIT_REFUSED``.
@@ -18,6 +19,10 @@ Then, per company in sorted ticker order, each in its own transaction:
 
 - a ``BaselineResult`` is appended as a ``prediction`` record (D-12, interval ``none``);
 - a ``BaselineRefusal`` is appended as a ``gap`` record, never imputed (D-08).
+
+A repeated lock for the same company and quarter appends a new, later record; earlier records
+are never overwritten or edited, and the official call is the last valid lock (decision of
+24 Nov 2026).
 
 Exit codes are documented in ``nowcaster.exit_codes`` (D-17).
 """
@@ -272,6 +277,13 @@ def _execute(
             raise LockRefused(
                 f"{' and '.join(stale)} changed since rules record seq {rules.seq}; "
                 "run: uv run nowcast rules (a new, visible rules record) before locking"
+            )
+
+        if now < rules.recorded_at:
+            raise LockRefused(
+                f"lock_before_rules: now {format_ts(now.replace(microsecond=0))} is earlier than "
+                f"rules record seq {rules.seq} ({format_ts(rules.recorded_at.replace(microsecond=0))}); "
+                "a lock cannot predate the rules it is bound to"
             )
 
         # Pass 1: the guard, per company, on UTC instants. Nothing is appended yet.

@@ -15,8 +15,11 @@ After the SQL filter, a post-condition re-checks every fetched row in Python and
 meta-test subclass them, and the suite must catch every one.
 
 Revisions (D-05): of several vintages of the same ``period_date`` known at ``as_of``, the
-latest wins under the total order ``(available_at, ingested_at, content_hash)``, so ties break
-deterministically and independently of insertion order or ``obs_id``.
+latest ``available_at`` wins. Two vintages that share the latest ``available_at`` but carry
+different values are a tie that cannot be ordered by anything public: ``series`` raises
+``TiedVintageError`` and never picks one (decision of 24 Nov 2026, in every mode). Identical
+values at the same ``available_at`` are not a conflict; the lower-level order
+``(ingested_at, content_hash)`` then only keeps the result deterministic.
 """
 
 from __future__ import annotations
@@ -36,6 +39,18 @@ MODES: tuple[str, ...] = ("backtest", "live")
 
 class LeakageError(AssertionError):
     """A read returned a row that was not knowable at ``as_of``."""
+
+
+class TiedVintageError(ValueError):
+    """Two vintages of one period share the latest ``available_at`` with different values."""
+
+    def __init__(self, series_key: str, period_dates: tuple[date, ...]) -> None:
+        self.series_key = series_key
+        self.period_dates = period_dates
+        super().__init__(
+            f"{series_key}: tied available_at with different values for "
+            + ", ".join(d.isoformat() for d in period_dates)
+        )
 
 
 @dataclass(frozen=True)
@@ -153,6 +168,16 @@ class PointInTimeReader:
             current = latest.get(obs.period_date)
             if current is None or _vintage_key(obs) > _vintage_key(current):
                 latest[obs.period_date] = obs
+        tied = sorted(
+            {
+                obs.period_date
+                for obs in fetched
+                if obs.available_at == latest[obs.period_date].available_at
+                and obs.value != latest[obs.period_date].value
+            }
+        )
+        if tied:
+            raise TiedVintageError(series_key, tuple(tied))
         return tuple(latest[d] for d in sorted(latest))
 
     def reveal_events(self, ticker: str, fiscal_quarter_label: str) -> tuple[RevealEvent, ...]:

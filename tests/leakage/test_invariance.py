@@ -13,10 +13,10 @@ snapshot, or an identical refusal. A reader that consults any information from a
 this fail. The explicit ``@example`` cases make each deliberately leaky reader fail
 deterministically, without depending on hypothesis finding the case.
 
-Known edge, deliberately avoided by the strategy: two visible vintages of one period with the
-SAME ``available_at`` are ordered by ``ingested_at`` (then content hash), so ``ingested_at``
-can pick a winner among exact ties even in backtest. Restatements here therefore never share
-an ``available_at``; the tie-break itself is covered in test_reader.py.
+Ties (decision of 24 Nov 2026): two visible vintages of one period with the SAME
+``available_at`` and different values are refused (``TiedVintageError``, reason
+``tied_available_at``), never ordered by ``ingested_at``. The strategy therefore never shares an
+``available_at`` between restatements; the refusal itself is covered in test_reader.py.
 
 All values are SYNTHETIC.
 """

@@ -48,12 +48,18 @@ class RulesHead:
     hash: str
     document_sha256: str
     universe_sha256: str
+    recorded_at: datetime
 
 
 def latest_rules_record(conn: sa.Connection) -> RulesHead | None:
     """The newest ``rules`` record in the chain, or ``None`` if none was ever appended."""
     row = conn.execute(
-        sa.select(predictions.c.seq, predictions.c.hash, predictions.c.payload_canonical)
+        sa.select(
+            predictions.c.seq,
+            predictions.c.hash,
+            predictions.c.payload_canonical,
+            predictions.c.created_at,
+        )
         .where(predictions.c.record_kind == "rules")
         .order_by(predictions.c.seq.desc())
         .limit(1)
@@ -66,6 +72,7 @@ def latest_rules_record(conn: sa.Connection) -> RulesHead | None:
         hash=row.hash,
         document_sha256=payload["document_sha256"],
         universe_sha256=payload["universe_sha256"],
+        recorded_at=row.created_at,
     )
 
 
