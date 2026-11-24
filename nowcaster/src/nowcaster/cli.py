@@ -46,6 +46,7 @@ from nowcaster.exit_codes import EXIT_CODE_HELP
 from nowcaster.ledger.canonical import CanonicalError, format_money, format_ts
 from nowcaster.ledger.chain import ForkError, RecordError
 from nowcaster.ledger.export import ExportError, export_ledger
+from nowcaster.ledger.head import HeadError, read_head_line, write_head_bytes
 from nowcaster.lock import LockKind, run_lock
 from nowcaster.rules import RulesError, append_rules_record
 from nowcaster.universe import Break, Company, Universe, UniverseError, load_universe
@@ -458,6 +459,32 @@ def ledger_export(
         f"exported {report.records} record(s) to {report.path.as_posix()} "
         f"(+{report.appended_lines} line(s)); head seq {report.head_seq} hash {report.head_hash}"
     )
+
+
+@ledger_app.command("head")
+def ledger_head(
+    ledger_dir: Annotated[
+        Path, typer.Option("--ledger-dir", help="Directory holding ledger.jsonl.")
+    ],
+    write_bytes: Annotated[
+        Path | None,
+        typer.Option(
+            "--write-bytes",
+            help="Write the head line's exact bytes (no newline) here, to be timestamped.",
+        ),
+    ] = None,
+) -> None:
+    """Print the head's seq and hash; optionally write the exact bytes OTS must stamp."""
+    try:
+        head = (
+            write_head_bytes(ledger_dir, write_bytes)
+            if write_bytes is not None
+            else read_head_line(ledger_dir)
+        )
+    except HeadError as exc:
+        typer.echo(f"ledger head: refused: {exc}", err=True)
+        raise typer.Exit(1) from None
+    typer.echo(f"seq={head.seq} hash={head.hash}")
 
 
 if __name__ == "__main__":
