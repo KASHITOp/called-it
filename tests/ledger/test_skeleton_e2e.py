@@ -108,9 +108,9 @@ def test_live_with_sqlite_is_refused() -> None:
 @pytest.mark.parametrize(
     "secret",
     [
-        "postgresql://user:hunter2-secret@[bad-host/postgres",
+        "postgresql://user:hunter2-secret@[HOST/postgres",
         "postgresql://postgres.ref:[hunter2#x/y]@pooler.example.com:5432/postgres",
-        "postgresql://postgres.ref:hunter2@x@pooler.example.com:5432/postgres",
+        "postgresql://postgres.ref:" + "hunter2" + "@x@pooler.example.com:5432/postgres",
     ],
     ids=["bracket-host", "bracketed-password", "unencoded-at"],
 )

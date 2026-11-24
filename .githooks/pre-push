@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs the publish preflight (working copy and fresh clone) before every push.
+exec uv run python scripts/preflight_publish.py

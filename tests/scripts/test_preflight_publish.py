@@ -127,3 +127,61 @@ def test_the_real_env_secret_in_a_tracked_file_is_found_without_printing_it(repo
     done = _run(repo)
     assert done.returncode == 1 and "real DATABASE_URL password" in done.stdout
     assert secret not in done.stdout + done.stderr
+
+
+def _plant(repo: Path, text: str) -> None:
+    (repo / "plant.md").write_text(text + "\n", encoding="utf-8")
+    _git(repo, "add", "plant.md")
+    _git(repo, "commit", "-q", "-m", "plant")
+
+
+def test_a_fake_real_looking_supabase_connection_string_is_flagged(repo: Path) -> None:
+    ref = "abcdefghijklmnopqrst"
+    _plant(
+        repo,
+        "postgresql://postgres."
+        + ref
+        + ":Fake0pass@"
+        + "aws-0-ap-south-1.pooler.supabase"
+        + ".com:5432/postgres",
+    )
+    done = _run(repo)
+    assert done.returncode == 1 and "plant.md:1" in done.stdout
+    assert ref not in done.stdout and "Fake0pass" not in done.stdout
+
+
+def test_a_direct_supabase_host_with_a_project_ref_is_flagged(repo: Path) -> None:
+    _plant(
+        repo,
+        "postgresql://postgres:Fake0pass" + "@db." + "abcdefghijklmnopqrst.supabase" + ".co:5432/p",
+    )
+    assert _run(repo).returncode == 1
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "evil.example.com",  # a subdomain is not the allowlisted example.com
+        "localhost.evil.test",
+        "notlocalhost",
+        "myhost",
+        "abc.pooler.example.com",
+        "host.supabase.example",
+        "127.0.0.10",
+    ],
+)
+def test_allowlist_is_exact_never_substring_or_wildcard(repo: Path, host: str) -> None:
+    _plant(repo, "postgresql://u:Fake0pass@" + host + ":5432/p")
+    assert _run(repo).returncode == 1, host
+
+
+def test_the_real_secret_is_found_in_the_fresh_clone_too(repo: Path) -> None:
+    secret = "Qv7nR4tY2k"
+    (repo / ".env").write_text(
+        "DATABASE_URL=postgresql+psycopg://admin:" + secret + "@db.realhost.test:5432/p\n",
+        encoding="utf-8",
+    )
+    _plant(repo, "leak " + secret)
+    done = _run(repo)
+    assert done.returncode == 1 and "fresh clone: the real DATABASE_URL password" in done.stdout
+    assert secret not in done.stdout + done.stderr

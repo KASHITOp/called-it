@@ -15,6 +15,12 @@ Checks:
   4. The real host, user and password from the local ``.env`` appear in no tracked file and
      nowhere in history. They are checked in memory; only a yes/no finding is printed.
   5. The current branch is ``main``.
+  3c. When origin/<branch> exists, the credential-text scan of history covers only the commits
+     not yet published (earlier ones are already public and were reviewed); file names and the
+     real secret are still checked over the full history.
+  6. The whole scan, including check 4, is repeated on a fresh clone of the branch (with the
+     real secret taken from the working copy's ``.env``), so what is pushed is what is checked.
+     Run by ``.githooks/pre-push`` before every push.
 """
 
 from __future__ import annotations
@@ -23,6 +29,7 @@ import argparse
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -32,17 +39,19 @@ HOST_PATTERNS = (
     re.compile(r"[a-z0-9]+-\d+-[a-z0-9-]+\.pooler\.supabase\.com"),
 )
 # Hosts and placeholders that can never be a real database (documentation and test fixtures).
+# EXACT, case-insensitive matches only: never a substring, suffix or wildcard, so a real
+# *.pooler.supabase.com host or a real project reference is never excused.
 ALLOWED_HOSTS = frozenset(
     {
         "",
-        "host",
-        "pooler-host",
+        "example.invalid",
+        "example.com",
         "localhost",
         "127.0.0.1",
-        "example.com",
-        "example.invalid",
-        "x",
-        "bad-host",
+        "host",
+        "pooler-host",
+        "projectref",
+        "ref",
         "pooler.example.com",
     }
 )
@@ -65,8 +74,8 @@ def _name_forbidden(path: str) -> bool:
 
 
 def _host_unlisted(host: str) -> bool:
-    cleaned = host.strip("<>[]").lower()
-    return cleaned not in ALLOWED_HOSTS and not cleaned.endswith(".example.com")
+    cleaned = host.strip("<>[]").lower()  # placeholder brackets only; then an exact lookup
+    return cleaned not in ALLOWED_HOSTS
 
 
 def _line_hits(path: str, line: str) -> bool:
@@ -77,9 +86,9 @@ def _line_hits(path: str, line: str) -> bool:
     return any(_host_unlisted(m.group(3)) for m in URL_PATTERN.finditer(line))
 
 
-def _real_secret_findings(repo: Path) -> list[str]:
+def _real_secret_findings(repo: Path, env_file: Path | None = None) -> list[str]:
     """Look for the real DATABASE_URL parts from .env in tracked files and history."""
-    env = repo / ".env"
+    env = env_file if env_file is not None else repo / ".env"
     if not env.is_file():
         return []
     value = ""
@@ -110,7 +119,9 @@ def _real_secret_findings(repo: Path) -> list[str]:
     return findings
 
 
-def scan(repo: Path, branch: str = "main") -> list[str]:
+def scan(
+    repo: Path, branch: str = "main", env_file: Path | None = None, since: str | None = None
+) -> list[str]:
     findings: list[str] = []
     if _git(repo, "check-ignore", "-q", ".env", check=False).returncode != 0:
         findings.append(".env is not git-ignored")
@@ -140,7 +151,14 @@ def scan(repo: Path, branch: str = "main") -> list[str]:
             findings.append(f"forbidden file name in history: {name}")
 
     history = _git(
-        repo, "log", branch, "-p", "-U0", "--no-color", "--format=commit %h", check=False
+        repo,
+        "log",
+        f"{since}..{branch}" if since else branch,
+        "-p",
+        "-U0",
+        "--no-color",
+        "--format=commit %h",
+        check=False,
     )
     commit = path_in_diff = ""
     for line in history.stdout.decode("utf-8", "replace").splitlines():
@@ -154,8 +172,35 @@ def scan(repo: Path, branch: str = "main") -> list[str]:
             and _line_hits(path_in_diff, line[1:])
         ):
             findings.append(f"credential-like text in history: {commit} {path_in_diff}")
-    findings.extend(_real_secret_findings(repo))
+    findings.extend(_real_secret_findings(repo, env_file))
     return sorted(set(findings))
+
+
+def pushed_base(repo: Path, branch: str) -> str | None:
+    """The commit already published as origin/<branch>, if any (text scan covers only newer ones).
+
+    The full history is still checked for forbidden file names and for the real secret.
+    """
+    done = _git(repo, "rev-parse", "--verify", "-q", f"origin/{branch}", check=False)
+    return done.stdout.decode().strip() or None
+
+
+def scan_fresh_clone(repo: Path, branch: str = "main") -> list[str]:
+    """Scan a fresh clone of what would be pushed, against the real secret of the working copy."""
+    with tempfile.TemporaryDirectory(prefix="preflight-clone-") as tmp:
+        clone = Path(tmp) / "clone"
+        done = subprocess.run(
+            ["git", "clone", "-q", "--branch", branch, "--single-branch", str(repo), str(clone)],
+            capture_output=True,
+            check=False,
+            timeout=600,
+        )
+        if done.returncode != 0:
+            return ["fresh clone failed"]
+        return [
+            f"fresh clone: {f}"
+            for f in scan(clone, branch, repo / ".env", since=pushed_base(repo, branch))
+        ]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -163,7 +208,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--branch", default="main")
     args = parser.parse_args(argv)
-    findings = scan(args.repo, args.branch)
+    findings = scan(
+        args.repo, args.branch, since=pushed_base(args.repo, args.branch)
+    ) + scan_fresh_clone(args.repo, args.branch)
     for finding in findings:
         print(f"FINDING: {finding}")
     if findings:
