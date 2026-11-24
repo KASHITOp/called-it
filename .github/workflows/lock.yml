@@ -1,0 +1,224 @@
+# The lock runner (D-18): the only place a live ledger record is ever written.
+#
+#   action=rules    append the rules record (hashes PREREGISTRATION.md and universe.toml)
+#   action=predict  load the seed, append one prediction (or gap) per company
+#   action=stamp    OpenTimestamps-stamp the current head if no proof exists for its seq
+#   action=upgrade  upgrade pending proofs and cross-check completed ones against two explorers
+#
+# mode=rehearsal (default) writes ONLY to the calledit_rehearsal schema and to the
+# rehearsal-ledger branch (checked out at rehearsal/). It never commits to main.
+# mode=live needs confirm_live == LIVE and the main branch, and writes the calledit schema and
+# ledger/ on main.
+#
+# Security: workflow inputs reach the shell only through env: variables, never through
+# ${{ }} inside run: (script-injection guard). DATABASE_URL is set only in step-level env of the
+# steps that need it, and nothing here enables shell tracing, so it is never printed.
+name: lock
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to run"
+        type: choice
+        options: [rules, predict, stamp, upgrade]
+        required: true
+      mode:
+        description: "rehearsal writes only scratch targets; live writes the real ledger"
+        type: choice
+        options: [rehearsal, live]
+        default: rehearsal
+      quarter:
+        description: "Fiscal quarter, e.g. Q3FY27 (predict only)"
+        type: string
+        default: Q3FY27
+      confirm_live:
+        description: "Type LIVE to allow mode=live"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ledger
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lock:
+    name: ${{ inputs.action }} (${{ inputs.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      ACTION: ${{ inputs.action }}
+      MODE: ${{ inputs.mode }}
+      QUARTER: ${{ inputs.quarter }}
+      CONFIRM_LIVE: ${{ inputs.confirm_live }}
+      GIT_REF: ${{ github.ref }}
+    steps:
+      - name: Guard
+        run: |
+          if [ "$MODE" = "live" ]; then
+            if [ "$CONFIRM_LIVE" != "LIVE" ]; then
+              echo "mode=live requires confirm_live == LIVE"; exit 1
+            fi
+            if [ "$GIT_REF" != "refs/heads/main" ]; then
+              echo "mode=live runs only on refs/heads/main"; exit 1
+            fi
+          fi
+          if ! printf '%s' "$QUARTER" | grep -Eq '^Q[1-4]FY[0-9]{2}$'; then
+            echo "quarter must look like Q3FY27"; exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Prepare ledger directory
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$MODE" = "live" ]; then
+            echo "CALLEDIT_ENV=live" >> "$GITHUB_ENV"
+            echo "LEDGER_DIR=ledger" >> "$GITHUB_ENV"
+            echo "COMMIT_DIR=." >> "$GITHUB_ENV"
+            echo "PUSH_REF=main" >> "$GITHUB_ENV"
+          else
+            if git ls-remote --exit-code --heads origin rehearsal-ledger >/dev/null 2>&1; then
+              git fetch origin rehearsal-ledger
+              git worktree add -B rehearsal-ledger rehearsal origin/rehearsal-ledger
+            else
+              git worktree add --orphan -b rehearsal-ledger rehearsal
+            fi
+            echo "CALLEDIT_ENV=rehearsal" >> "$GITHUB_ENV"
+            echo "CALLEDIT_LEDGER_DIR=rehearsal/ledger" >> "$GITHUB_ENV"
+            echo "LEDGER_DIR=rehearsal/ledger" >> "$GITHUB_ENV"
+            echo "COMMIT_DIR=rehearsal" >> "$GITHUB_ENV"
+            echo "PUSH_REF=rehearsal-ledger" >> "$GITHUB_ENV"
+          fi
+          mkdir -p "$LEDGER_DIR/proofs" 2>/dev/null || true
+
+      - run: uv sync --locked --group ots
+
+      - name: Migrate and self-check the database
+        if: env.ACTION == 'rules' || env.ACTION == 'predict'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          uv run alembic upgrade head
+          uv run nowcast db check
+
+      - name: Upgrade pending proofs before a new record (predict only)
+        if: env.ACTION == 'predict'
+        run: |
+          shopt -s nullglob
+          for proof in "$LEDGER_DIR"/proofs/*.ots; do
+            out="$(uv run ots upgrade "$proof" 2>&1 || true)"
+            echo "$(basename "$proof"): $(printf '%s' "$out" | tail -n 1)"
+          done
+          find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+
+      - name: Load the seed (predict only)
+        if: env.ACTION == 'predict'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: uv run nowcast seed load --require-verified
+
+      - name: Append the record, export and commit it (git witness first)
+        id: record
+        if: env.ACTION == 'rules' || env.ACTION == 'predict'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set +e
+          if [ "$ACTION" = "rules" ]; then
+            uv run nowcast rules
+          else
+            uv run nowcast predict --quarter "$QUARTER" --kind dispatch
+          fi
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ] && [ "$code" -ne 3 ]; then
+            echo "nowcast exited $code: nothing is committed"; exit "$code"
+          fi
+          uv run nowcast ledger export --out "$LEDGER_DIR"
+          head_line="$(uv run nowcast ledger head --ledger-dir "$LEDGER_DIR")"
+          echo "$head_line"
+          seq="${head_line#seq=}"; seq="${seq%% *}"
+          git -C "$COMMIT_DIR" add -A "${LEDGER_DIR#"$COMMIT_DIR"/}"
+          git -C "$COMMIT_DIR" commit -m "ledger: $ACTION $MODE head seq $seq (run $GITHUB_RUN_ID)"
+          git -C "$COMMIT_DIR" push origin "HEAD:refs/heads/$PUSH_REF"
+          echo "nowcast_code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp the head with OpenTimestamps
+        if: env.ACTION == 'rules' || env.ACTION == 'predict' || env.ACTION == 'stamp'
+        run: |
+          head_line="$(uv run nowcast ledger head --ledger-dir "$LEDGER_DIR")"
+          seq="${head_line#seq=}"; seq="${seq%% *}"
+          want="${head_line##*hash=}"
+          target="$LEDGER_DIR/proofs/$seq.ots"
+          if [ -e "$target" ]; then
+            echo "a proof for seq $seq already exists: never overwritten"
+            if [ "$ACTION" = "stamp" ]; then exit 1; fi
+            exit 0
+          fi
+          uv run nowcast ledger head --ledger-dir "$LEDGER_DIR" --write-bytes "$RUNNER_TEMP/$seq" >/dev/null
+          got="$(sha256sum "$RUNNER_TEMP/$seq" | cut -d' ' -f1)"
+          if [ "$got" != "$want" ]; then echo "stamp input digest differs from the head hash"; exit 1; fi
+          # -m 2: fail loudly (red run) unless at least two calendars answer.
+          uv run ots stamp -m 2 "$RUNNER_TEMP/$seq"
+          mkdir -p "$LEDGER_DIR/proofs"
+          mv "$RUNNER_TEMP/$seq.ots" "$target"
+          find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+          git -C "$COMMIT_DIR" add -A .
+          git -C "$COMMIT_DIR" commit -m "ledger: stamp $MODE seq $seq (run $GITHUB_RUN_ID)"
+          git -C "$COMMIT_DIR" push origin "HEAD:refs/heads/$PUSH_REF"
+
+      - name: Upgrade proofs and cross-check completed ones
+        if: env.ACTION == 'upgrade'
+        run: |
+          shopt -s nullglob
+          {
+            echo "| seq | status | explorer check |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for proof in "$LEDGER_DIR"/proofs/*.ots; do
+            seq="$(basename "$proof" .ots)"
+            out="$(uv run ots upgrade "$proof" 2>&1 || true)"
+            if printf '%s' "$out" | grep -q "Timestamp complete"; then
+              status=complete
+            elif printf '%s' "$out" | grep -q "not complete"; then
+              status=pending
+            else
+              echo "unexpected ots upgrade output for seq $seq"; exit 1
+            fi
+            find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+            check="-"
+            if [ "$status" = complete ]; then
+              line="$(sed -n "$((seq + 1))p" "$LEDGER_DIR/ledger.jsonl" | tr -d '\n')"
+              digest="$(printf '%s' "$line" | sha256sum | cut -d' ' -f1)"
+              before="$(printf '%s' "$line" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("earliest_plausible_reveal","2026-12-31T18:30:00Z"))')"
+              if uv run python scripts/ots_explorer_check.py "$proof" --digest "$digest" --before "$before"; then
+                check=PASS
+              else
+                check=FAIL
+              fi
+            fi
+            echo "| $seq | $status | $check |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if git -C "$COMMIT_DIR" status --porcelain | grep -q .; then
+            git -C "$COMMIT_DIR" add -A .
+            git -C "$COMMIT_DIR" commit -m "ledger: upgrade proofs $MODE (run $GITHUB_RUN_ID)"
+            git -C "$COMMIT_DIR" push origin "HEAD:refs/heads/$PUSH_REF"
+          fi
+
+      - name: Fail the run if some company got a gap (exit 3 stays red)
+        if: steps.record.outputs.nowcast_code == '3'
+        run: |
+          echo "nowcast exited 3: records were appended, but a company was refused or got a gap"
+          exit 3
