@@ -22,6 +22,7 @@ from calledit_data.calendar.reveal import (
 from calledit_data.calendar.tz import to_ist
 from calledit_data.db.check import env_file_lines, run_db_check
 from calledit_data.db.engine import make_engine
+from calledit_data.db.scratch import ScratchGuardError, drop_scratch_schema
 from calledit_data.db.settings import LiveContextError, Settings, get_settings
 from calledit_data.pit.reader import PointInTimeReader
 from calledit_data.seed.loader import (
@@ -93,6 +94,33 @@ def db_check(
         typer.echo(line)
     if not report.ok:
         raise typer.Exit(1)
+
+
+@db_app.command("drop-scratch")
+def db_drop_scratch(
+    schema: Annotated[
+        str, typer.Option("--schema", help="calledit_rehearsal or calledit_test_<hex> only.")
+    ],
+) -> None:
+    """Drop a rehearsal/test schema (never the live one, never in a live environment)."""
+    settings = _settings_or_exit()
+    if settings.calledit_env == "live":
+        typer.echo("db drop-scratch: refused: not available when CALLEDIT_ENV=live", err=True)
+        raise typer.Exit(1)
+    engine = None
+    try:
+        engine = make_engine(settings)
+        drop_scratch_schema(engine, schema)
+    except ScratchGuardError as exc:
+        typer.echo(f"db drop-scratch: refused: {exc}", err=True)
+        raise typer.Exit(1) from None
+    except Exception as exc:  # noqa: BLE001 - DB errors: class name only, never the URL
+        typer.echo(f"db drop-scratch: failed ({type(exc).__name__})", err=True)
+        raise typer.Exit(1) from None
+    finally:
+        if engine is not None:
+            engine.dispose()
+    typer.echo(f"dropped schema {schema}")
 
 
 @app.command("rules")
