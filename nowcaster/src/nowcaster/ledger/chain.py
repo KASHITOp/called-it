@@ -101,10 +101,20 @@ def _check_payload(payload: dict, typed: TypedColumns, seq: int, expected_prev: 
         raise RecordError(f"payload {stamp_field} does not equal the typed created_at")
 
 
-def append_record(engine: sa.Engine, build: Builder) -> AppendedRecord:
-    """Append one record in one transaction: read head, build, verify link, hash, insert."""
+def append_record(
+    engine: sa.Engine,
+    build: Builder,
+    guard: Callable[[sa.Connection], None] | None = None,
+) -> AppendedRecord:
+    """Append one record in one transaction: read head, build, verify link, hash, insert.
+
+    ``guard`` runs inside the same transaction, after the writer lock is taken and before
+    anything is built; it refuses by raising, so a check-then-write race is impossible.
+    """
     with engine.begin() as conn:
         _take_writer_lock(conn)
+        if guard is not None:
+            guard(conn)
         head = read_head(conn)
         seq, expected_prev = next_position(head)
         payload, typed = build(seq, expected_prev)

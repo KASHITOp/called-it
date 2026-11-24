@@ -207,6 +207,19 @@ def append_rules_record(
         )
         return payload, rules_typed_columns(now)
 
+    def refuse_exact_duplicate(conn: sa.Connection) -> None:
+        # Same hashes as the latest rules record: nothing changed, so a new record would only
+        # add a duplicate. A real change (either hash differs) is still a new record.
+        head = latest_rules_record(conn)
+        if head is not None and (head.document_sha256, head.universe_sha256) == (
+            document_sha,
+            universe_sha,
+        ):
+            raise RulesError(
+                f"rules already recorded at seq {head.seq} with these exact hashes; "
+                "nothing appended"
+            )
+
     engine = make_engine(settings)
     try:
         if dry_run:
@@ -214,7 +227,7 @@ def append_rules_record(
                 seq, prev_hash = next_position(read_head(conn))
             payload, _typed = build(seq, prev_hash)
             return RulesResult(dry_run=True, payload_canonical=canonicalize(payload), appended=None)
-        appended = append_record(engine, build)
+        appended = append_record(engine, build, refuse_exact_duplicate)
         return RulesResult(
             dry_run=False, payload_canonical=appended.payload_canonical, appended=appended
         )

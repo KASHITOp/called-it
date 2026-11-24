@@ -152,6 +152,43 @@ def test_rules_prints_seq_and_hash(lock_env: LockEnv) -> None:
     assert re.search(r"RULES seq=0 hash=[0-9a-f]{64}", result.output)
 
 
+def test_rules_on_an_empty_ledger_writes_seq_0_with_the_genesis_prev_hash(
+    lock_env: LockEnv,
+) -> None:
+    assert lock_env.count() == 0
+    result = lock_env.rules()
+    assert result.exit_code == 0, result.output
+    rows = lock_env.rows()
+    assert len(rows) == 1
+    assert rows[0]["payload"]["seq"] == "0"
+    assert rows[0]["payload"]["prev_hash"] == "0" * 64
+
+
+def test_a_second_rules_run_with_identical_hashes_is_refused_and_appends_nothing(
+    lock_env: LockEnv,
+) -> None:
+    first = lock_env.rules()
+    assert first.exit_code == 0, first.output
+    before = lock_env.rows()
+    again = lock_env.rules(LATER)
+    assert again.exit_code == 1, again.output
+    assert "already recorded at seq 0" in again.output
+    assert lock_env.rows() == before
+    assert lock_env.count() == 1
+
+
+def test_an_unchanged_rules_run_is_refused_even_after_predictions_exist(
+    lock_env: LockEnv,
+) -> None:
+    lock_env.load_seed()
+    assert lock_env.rules().exit_code == 0
+    assert lock_env.predict("Q3FY27", LATER).exit_code == EXIT_OK
+    count = lock_env.count()
+    again = lock_env.rules(EVEN_LATER)
+    assert again.exit_code == 1 and "already recorded at seq 0" in again.output
+    assert lock_env.count() == count
+
+
 # --- live provenance ----------------------------------------------------------------------
 
 
