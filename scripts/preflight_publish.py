@@ -167,7 +167,7 @@ def scan(
         elif line.startswith("+++ b/"):
             path_in_diff = line[6:]
         elif (
-            line.startswith(("+", "-"))
+            line.startswith(("+",) if since else ("+", "-"))
             and not line.startswith(("+++", "---"))
             and _line_hits(path_in_diff, line[1:])
         ):
