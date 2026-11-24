@@ -85,7 +85,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ "$MODE" = "live" ]; then
             echo "CALLEDIT_ENV=live" >> "$GITHUB_ENV"
-            echo "LEDGER_DIR=ledger" >> "$GITHUB_ENV"
+            echo "LOCK_LEDGER=ledger" >> "$GITHUB_ENV"
             echo "COMMIT_DIR=." >> "$GITHUB_ENV"
             echo "PUSH_REF=main" >> "$GITHUB_ENV"
           else
@@ -97,11 +97,11 @@ jobs:
             fi
             echo "CALLEDIT_ENV=rehearsal" >> "$GITHUB_ENV"
             echo "CALLEDIT_LEDGER_DIR=rehearsal/ledger" >> "$GITHUB_ENV"
-            echo "LEDGER_DIR=rehearsal/ledger" >> "$GITHUB_ENV"
+            echo "LOCK_LEDGER=rehearsal/ledger" >> "$GITHUB_ENV"
             echo "COMMIT_DIR=rehearsal" >> "$GITHUB_ENV"
             echo "PUSH_REF=rehearsal-ledger" >> "$GITHUB_ENV"
           fi
-          mkdir -p "$LEDGER_DIR/proofs" 2>/dev/null || true
+          mkdir -p "$LOCK_LEDGER/proofs" 2>/dev/null || true
 
       - run: uv sync --locked --group ots
 
@@ -117,11 +117,11 @@ jobs:
         if: env.ACTION == 'predict'
         run: |
           shopt -s nullglob
-          for proof in "$LEDGER_DIR"/proofs/*.ots; do
+          for proof in "$LOCK_LEDGER"/proofs/*.ots; do
             out="$(uv run ots upgrade "$proof" 2>&1 || true)"
             echo "$(basename "$proof"): $(printf '%s' "$out" | tail -n 1)"
           done
-          find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+          find "$LOCK_LEDGER/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
 
       - name: Load the seed (predict only)
         if: env.ACTION == 'predict'
@@ -146,11 +146,11 @@ jobs:
           if [ "$code" -ne 0 ] && [ "$code" -ne 3 ]; then
             echo "nowcast exited $code: nothing is committed"; exit "$code"
           fi
-          uv run nowcast ledger export --out "$LEDGER_DIR"
-          head_line="$(uv run nowcast ledger head --ledger-dir "$LEDGER_DIR")"
+          uv run nowcast ledger export --out "$LOCK_LEDGER"
+          head_line="$(uv run nowcast ledger head --ledger-dir "$LOCK_LEDGER")"
           echo "$head_line"
           seq="${head_line#seq=}"; seq="${seq%% *}"
-          git -C "$COMMIT_DIR" add -A "${LEDGER_DIR#"$COMMIT_DIR"/}"
+          git -C "$COMMIT_DIR" add -A "${LOCK_LEDGER#"$COMMIT_DIR"/}"
           git -C "$COMMIT_DIR" commit -m "ledger: $ACTION $MODE head seq $seq (run $GITHUB_RUN_ID)"
           git -C "$COMMIT_DIR" push origin "HEAD:refs/heads/$PUSH_REF"
           echo "nowcast_code=$code" >> "$GITHUB_OUTPUT"
@@ -158,23 +158,23 @@ jobs:
       - name: Stamp the head with OpenTimestamps
         if: env.ACTION == 'rules' || env.ACTION == 'predict' || env.ACTION == 'stamp'
         run: |
-          head_line="$(uv run nowcast ledger head --ledger-dir "$LEDGER_DIR")"
+          head_line="$(uv run nowcast ledger head --ledger-dir "$LOCK_LEDGER")"
           seq="${head_line#seq=}"; seq="${seq%% *}"
           want="${head_line##*hash=}"
-          target="$LEDGER_DIR/proofs/$seq.ots"
+          target="$LOCK_LEDGER/proofs/$seq.ots"
           if [ -e "$target" ]; then
             echo "a proof for seq $seq already exists: never overwritten"
             if [ "$ACTION" = "stamp" ]; then exit 1; fi
             exit 0
           fi
-          uv run nowcast ledger head --ledger-dir "$LEDGER_DIR" --write-bytes "$RUNNER_TEMP/$seq" >/dev/null
+          uv run nowcast ledger head --ledger-dir "$LOCK_LEDGER" --write-bytes "$RUNNER_TEMP/$seq" >/dev/null
           got="$(sha256sum "$RUNNER_TEMP/$seq" | cut -d' ' -f1)"
           if [ "$got" != "$want" ]; then echo "stamp input digest differs from the head hash"; exit 1; fi
           # -m 2: fail loudly (red run) unless at least two calendars answer.
           uv run ots stamp -m 2 "$RUNNER_TEMP/$seq"
-          mkdir -p "$LEDGER_DIR/proofs"
+          mkdir -p "$LOCK_LEDGER/proofs"
           mv "$RUNNER_TEMP/$seq.ots" "$target"
-          find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+          find "$LOCK_LEDGER/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
           git -C "$COMMIT_DIR" add -A .
           git -C "$COMMIT_DIR" commit -m "ledger: stamp $MODE seq $seq (run $GITHUB_RUN_ID)"
           git -C "$COMMIT_DIR" push origin "HEAD:refs/heads/$PUSH_REF"
@@ -187,7 +187,7 @@ jobs:
             echo "| seq | status | explorer check |"
             echo "|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
-          for proof in "$LEDGER_DIR"/proofs/*.ots; do
+          for proof in "$LOCK_LEDGER"/proofs/*.ots; do
             seq="$(basename "$proof" .ots)"
             out="$(uv run ots upgrade "$proof" 2>&1 || true)"
             if printf '%s' "$out" | grep -q "Timestamp complete"; then
@@ -197,10 +197,10 @@ jobs:
             else
               echo "unexpected ots upgrade output for seq $seq"; exit 1
             fi
-            find "$LEDGER_DIR/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
+            find "$LOCK_LEDGER/proofs" -name '*.ots.bak' -delete 2>/dev/null || true
             check="-"
             if [ "$status" = complete ]; then
-              line="$(sed -n "$((seq + 1))p" "$LEDGER_DIR/ledger.jsonl" | tr -d '\n')"
+              line="$(sed -n "$((seq + 1))p" "$LOCK_LEDGER/ledger.jsonl" | tr -d '\n')"
               digest="$(printf '%s' "$line" | sha256sum | cut -d' ' -f1)"
               before="$(printf '%s' "$line" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("earliest_plausible_reveal","2026-12-31T18:30:00Z"))')"
               if uv run python scripts/ots_explorer_check.py "$proof" --digest "$digest" --before "$before"; then

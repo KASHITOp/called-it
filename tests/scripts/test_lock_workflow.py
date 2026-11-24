@@ -43,3 +43,13 @@ def test_no_shell_tracing_and_actions_are_sha_pinned() -> None:
 
 def test_live_requires_confirmation_and_main() -> None:
     assert '"$CONFIRM_LIVE" != "LIVE"' in TEXT and '"$GIT_REF" != "refs/heads/main"' in TEXT
+
+
+def test_no_workflow_variable_collides_with_a_settings_field_name() -> None:
+    # pydantic-settings also reads a field by its bare name (validate_by_name), so a runner
+    # variable called LEDGER_DIR made live settings invalid on the first live dispatch
+    # (CALLEDIT_LEDGER_DIR cannot be overridden when CALLEDIT_ENV=live). Run 45492469491.
+    collisions = re.findall(
+        r"(?<![A-Za-z_])(LEDGER_DIR|DB_SCHEMA|PREREG_PATH|UNIVERSE_PATH)\b", TEXT
+    )
+    assert not collisions, collisions
