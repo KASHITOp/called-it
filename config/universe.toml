@@ -70,11 +70,11 @@ break_ids = ["gst2.0"]
 id = "eternal-blinkit-inventory"
 kind = "quarter_range"
 applies_to = ["ETERNAL"]
-start_q = "Q1FY26"
+start_q = "Q2FY26"
 end_q = "Q3FY26"
 source_url = "https://b.zmtcdn.com/investor-relations/Eternal_Shareholders_Letter_Q1FY26_Results.pdf"
-source_note = "Primary: Eternal shareholder letters. start_q Q1FY26 (letter dated 21 Jul 2025, Q&A on inventory ownership): We will be gradually transitioning our quick commerce business from a marketplace model to inventory ownership over the next 2-3 quarters; In Q1FY26, about 3% of our NOV was already on our own inventory. end_q Q3FY26 (Q2FY26 letter, 16 Oct 2025: about 80% of NOV on own inventory in Q2FY26, expected to go to about 90%; Q3FY26 letter, 21 Jan 2026, https://b.zmtcdn.com/investor-relations/Eternal_Shareholders_Letter_Q3FY26_Results.pdf: In Q3FY26, about 90% of our NOV was on our own inventory, and as mentioned in our last letter, we don't expect this number to increase meaningfully from here). Proposed by Plan 01-09 and unconfirmed; the user confirms at Plan 01-10"
-confirmed = false
+source_note = "Primary: Eternal shareholder letters. Confirmed by the user on 24 Nov 2026. start_q Q2FY26: Q1FY26 is the last pre-break quarter (Q1FY26 letter, 21 Jul 2025, https://b.zmtcdn.com/investor-relations/Eternal_Shareholders_Letter_Q1FY26_Results.pdf: about 3% of NOV on own inventory, transition to inventory ownership over the next 2-3 quarters). The inventory-model switch reached about 80% of NOV on own inventory in Q2FY26 (Q2FY26 letter, 16 Oct 2025), expected to go to about 90%. end_q Q3FY26 (Q3FY26 letter, 21 Jan 2026, https://b.zmtcdn.com/investor-relations/Eternal_Shareholders_Letter_Q3FY26_Results.pdf: about 90% of NOV on own inventory, not expected to increase meaningfully from here)."
+confirmed = true
 
 [[breaks]]
 id = "gst2.0"

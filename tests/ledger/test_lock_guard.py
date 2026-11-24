@@ -304,6 +304,12 @@ def _live_universe(lock_env: LockEnv, *, isins: bool, breaks: bool, disable: str
         text = re.sub(r"(?m)^isin_confirmed = false$", "isin_confirmed = true", text)
     if breaks:
         text = re.sub(r"(?m)^confirmed = false$", "confirmed = true", text)
+    else:
+        # the shipped Eternal break is confirmed now, so un-confirm it explicitly
+        anchor = 'id = "eternal-blinkit-inventory"'
+        head, tail = text.split(anchor, 1)
+        assert "confirmed = true" in tail
+        text = head + anchor + tail.replace("confirmed = true", "confirmed = false", 1)
     if disable:
         pattern = rf'(ticker = "{disable}"(?:.|\n)*?)enabled = true'
         text = re.sub(pattern, r"\1enabled = false", text, count=1)

@@ -62,8 +62,8 @@ def test_repo_config_values() -> None:
     assert [b.id for b in eternal_breaks] == ["eternal-blinkit-inventory", "gst2.0"]
     blinkit = eternal_breaks[0]
     assert blinkit.kind == "quarter_range"
-    assert (blinkit.start_q, blinkit.end_q) == ("Q1FY26", "Q3FY26")
-    assert blinkit.confirmed is False
+    assert (blinkit.start_q, blinkit.end_q) == ("Q2FY26", "Q3FY26")
+    assert blinkit.confirmed is True
     gst = universe.breaks_for("DMART")[0]
     assert gst.id == "gst2.0" and gst.kind == "date"
     assert gst.effective == date(2025, 9, 22)
@@ -116,12 +116,12 @@ _BAD_EDITS = {
     "missing_applicable_break": ('ticker = "TITAN"', 'break_ids = ["gst2.0"]', "break_ids = []"),
     "start_q_after_end_q": (
         'id = "eternal-blinkit-inventory"',
-        'start_q = "Q1FY26"',
+        'start_q = "Q2FY26"',
         'start_q = "Q4FY26"',
     ),
     "non_canonical_quarter": (
         'id = "eternal-blinkit-inventory"',
-        'start_q = "Q1FY26"',
+        'start_q = "Q2FY26"',
         'start_q = "q1 fy26"',
     ),
     "http_source_url": (
