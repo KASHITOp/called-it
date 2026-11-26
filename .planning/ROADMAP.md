@@ -30,7 +30,7 @@ These are external dates that set the phase order. Earliest plausible reveals us
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: First Baseline-Only Lock** - Critical path. Scaffold, point-in-time store, leakage guard, seed revenue, baseline and ledger, ending in a hash-locked, git- and OTS-witnessed Q3 FY27 call by 1 Dec 2026
+- [x] **Phase 1: First Baseline-Only Lock** - Critical path. Scaffold, point-in-time store, leakage guard, seed revenue, baseline and ledger, ending in a hash-locked, git- and OTS-witnessed Q3 FY27 call by 1 Dec 2026
 - [ ] **Phase 2: The Record Runs Itself** - Daily forward collectors, weekly locks, a ledger verifier, a redundant final lock and CI, all running unattended on GitHub Actions
 - [ ] **Phase 3: Real Signals & Honest Backtest** - GST and Trends history with honest availability, a 5-8 feature builder, and a walk-forward baseline backtest kept apart from the live record
 - [ ] **Phase 4: Main Model Joins the Ledger** - Frozen, versioned ridge with 80% intervals, locked weekly by mid-December, graded by the published rules, and reported against the baseline whichever wins
@@ -62,7 +62,7 @@ Decimal phases appear between their surrounding integers in numeric order.
      - **Rules frozen first.** The grading rules and the frozen Eternal break treatment are committed, and their SHA-256 is recorded in the ledger before any prediction. The GST 2.0 treatment is deliberately left open here; it is decided in Phase 3 (FEAT-03).
      - **The lock.** On or before 1 Dec 2026, `uv run nowcast predict --quarter Q3FY27` locks one baseline-only prediction per company: same quarter last year x (1 + trailing YoY), with the Eternal treatment applied and a `feature_snapshot` recorded. It appends the lock to `ledger.jsonl`, pushes that commit to GitHub, and saves an OpenTimestamps proof. Within a day the proof upgrades to a Bitcoin attestation that `ots verify` accepts.
      - **Late and backfilled locks refused.** `uv run nowcast predict --quarter Q2FY27` (already revealed) is rejected or recorded VOID, and no command can backfill a lock at a past time.
-**Plans**: 9/13 plans executed
+**Plans**: 13/13 plans executed
 
 Plans:
 **Wave 1**
@@ -87,16 +87,16 @@ Plans:
 - [x] 01-09-PLAN.md — Seed history drafted from company IR documents (verified = N) + Eternal break-range citation
 
 **Wave 7** *(blocked on Wave 6 completion)*
-- [ ] 01-10-PLAN.md — PREREGISTRATION.md, then the freeze checkpoint (user verifies seed, confirms Eternal range/ISINs, approves rules)
+- [x] 01-10-PLAN.md — PREREGISTRATION.md, then the freeze checkpoint (user verifies seed, confirms Eternal range/ISINs, approves rules)
 
 **Wave 8** *(blocked on Wave 7 completion)*
-- [ ] 01-11-PLAN.md — Secret + publish gate, first push, ruleset, green CI, lock.yml, full dress rehearsal, discard
+- [x] 01-11-PLAN.md — Secret + publish gate, first push, ruleset, green CI, lock.yml, full dress rehearsal, discard
 
 **Wave 9** *(blocked on Wave 8 completion)*
-- [ ] 01-12-PLAN.md — Go-live gate and live seq 0 rules record, committed to main and OTS-stamped
+- [x] 01-12-PLAN.md — Go-live gate and live seq 0 rules record, committed to main and OTS-stamped
 
 **Wave 10** *(blocked on Wave 9 completion)*
-- [ ] 01-13-PLAN.md — Go-live gate and first live Q3 FY27 baseline-only lock; OTS upgrade and D-26 verification; phase evidence sweep
+- [x] 01-13-PLAN.md — Go-live gate and first live Q3 FY27 baseline-only lock; OTS upgrade and D-26 verification; phase evidence sweep
 
 ### Phase 2: The Record Runs Itself
 **Goal**: Forward-only signals build up every day from the first lock onward (a lost day can never be recovered). Weekly locks, ledger verification and the redundant final pre-reveal lock run unattended on GitHub Actions, so the Q3 FY27 official calls are made even if the developer is away over the New Year.
@@ -176,7 +176,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. First Baseline-Only Lock | 9/13 | In Progress | - |
+| 1. First Baseline-Only Lock | 13/13 | Complete | 2026-11-26 |
 | 2. The Record Runs Itself | 0/TBD | Not started | - |
 | 3. Real Signals & Honest Backtest | 0/TBD | Not started | - |
 | 4. Main Model Joins the Ledger | 0/TBD | Not started | - |

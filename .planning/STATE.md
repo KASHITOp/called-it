@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Baseline-Only Lock
-status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-11-18T11:57:46.096Z"
-last_activity: 2026-11-18
-last_activity_desc: Phase 01 execution started
+status: phase_complete
+stopped_at: Phase 1 complete; next is Phase 2
+last_updated: "2026-11-26T14:00:00.000Z"
+last_activity: 2026-11-26
+last_activity_desc: Phase 01 complete; Q3 FY27 baseline-only lock witnessed on Bitcoin
 state_head: 45f93e9c42d81d9d0451c823716d4d54efbfc9ab
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 13
-  completed_plans: 0
-  percent: 0
+  completed_plans: 13
+  percent: 17
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-17)
 
 **Core value:** Provably honest predictions: every call uses only data public at the time, is locked with a verifiable hash before the reveal, is never edited, and is graded in public against a naive baseline, even when the baseline wins.
-**Current focus:** Phase 01 — First Baseline-Only Lock
+**Current focus:** Phase 02 — The Record Runs Itself (Phase 01 complete)
 
 ## Current Position
 
-Phase: 01 (First Baseline-Only Lock) — EXECUTING
-Plan: 1 of 13
-Status: Executing Phase 01
-Last activity: 2026-11-18 — Phase 01 execution started
+Phase: 01 (First Baseline-Only Lock) — COMPLETE
+Plan: 13 of 13
+Status: Phase 01 complete; Phase 02 not started
+Last activity: 2026-11-26 — Q3 FY27 locked at seq 1-3 (head hash 5ce23711...ef7ed2); proofs 0 and 3 confirmed on Bitcoin (blocks 977426 and 977669)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 17% (1 of 6 phases)
 
 ## Performance Metrics
 
@@ -93,6 +93,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-17T23:18:18.291Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-first-baseline-only-lock/01-CONTEXT.md
+Last session: 2026-11-26T14:00:00.000Z
+Stopped at: Phase 1 complete; next is Phase 2
+Resume file: .planning/phases/01-first-baseline-only-lock/01-13-SUMMARY.md
