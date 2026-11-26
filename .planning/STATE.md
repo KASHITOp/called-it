@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: First Baseline-Only Lock
 status: phase_complete
-stopped_at: Phase 1 complete; next is Phase 2
-last_updated: "2026-11-26T14:00:00.000Z"
+stopped_at: Phase 2 context gathered
+last_updated: "2026-11-26T16:03:45.999Z"
 last_activity: 2026-11-26
 last_activity_desc: Phase 01 complete; Q3 FY27 baseline-only lock witnessed on Bitcoin
-state_head: 45f93e9c42d81d9d0451c823716d4d54efbfc9ab
+state_head: b4ab86ca1b12b5500dd78d7693b27e046d7a606a
 progress:
   total_phases: 6
   completed_phases: 1
@@ -93,6 +93,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-11-26T14:00:00.000Z
-Stopped at: Phase 1 complete; next is Phase 2
-Resume file: .planning/phases/01-first-baseline-only-lock/01-13-SUMMARY.md
+Last session: 2026-11-26T16:03:45.813Z
+Stopped at: Phase 2 context gathered
+Resume file: .planning/phases/02-the-record-runs-itself/02-CONTEXT.md
